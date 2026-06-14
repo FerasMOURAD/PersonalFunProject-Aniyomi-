@@ -303,6 +303,8 @@ internal class MigrateMangaDialogScreenModel(
                 chapterFlags = oldManga.chapterFlags,
                 viewerFlags = oldManga.viewerFlags,
                 dateAdded = if (replace) oldManga.dateAdded else Instant.now().toEpochMilli(),
+                // Carry over accumulated stats so they don't reset after migration
+                totalReadDuration = oldManga.totalReadDuration,
             ),
         )
     }

@@ -20,6 +20,10 @@ import eu.kanade.presentation.entries.anime.DuplicateAnimeDialog
 import eu.kanade.presentation.history.HistoryDeleteAllDialog
 import eu.kanade.presentation.history.HistoryDeleteDialog
 import eu.kanade.presentation.history.anime.AnimeHistoryScreen
+import eu.kanade.presentation.history.HistoryDeleteSelectedDialog
+import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.SelectAll
+import androidx.compose.material.icons.outlined.FlipToBack
 import eu.kanade.tachiyomi.ui.browse.anime.migration.anime.season.MigrateSeasonSelectScreen
 import eu.kanade.tachiyomi.ui.browse.anime.migration.search.MigrateAnimeDialog
 import eu.kanade.tachiyomi.ui.browse.anime.migration.search.MigrateAnimeDialogScreenModel
@@ -89,6 +93,14 @@ fun Screen.animeHistoryTab(
                 onClickResume = screenModel::getNextEpisodeForAnime,
                 onDialogChange = screenModel::setDialog,
                 onClickFavorite = screenModel::addFavorite,
+                onItemClick = { item ->
+                    if (state.selection.isNotEmpty()) {
+                        screenModel.toggleSelection(item.id)
+                    } else {
+                        screenModel.getNextEpisodeForAnime(item.animeId, item.episodeId)
+                    }
+                },
+                onItemLongClick = { item -> screenModel.toggleSelection(item.id) },
             )
 
             val onDismissRequest = { screenModel.setDialog(null) }
@@ -110,6 +122,13 @@ fun Screen.animeHistoryTab(
                     HistoryDeleteAllDialog(
                         onDismissRequest = onDismissRequest,
                         onDelete = screenModel::removeAllHistory,
+                    )
+                }
+                is AnimeHistoryScreenModel.Dialog.DeleteSelected -> {
+                    HistoryDeleteSelectedDialog(
+                        onDismissRequest = onDismissRequest,
+                        onDelete = screenModel::removeSelectedHistory,
+                        isManga = false,
                     )
                 }
                 is AnimeHistoryScreenModel.Dialog.DuplicateAnime -> {
@@ -174,14 +193,35 @@ fun Screen.animeHistoryTab(
                 }
             }
         },
-        actions =
-        persistentListOf(
-            AppBar.Action(
-                title = stringResource(MR.strings.pref_clear_history),
-                icon = Icons.Outlined.DeleteSweep,
-                onClick = { screenModel.setDialog(AnimeHistoryScreenModel.Dialog.DeleteAll) },
-            ),
-        ),
+        actions = if (state.selection.isNotEmpty()) {
+            persistentListOf(
+                AppBar.Action(
+                    title = stringResource(MR.strings.action_select_all),
+                    icon = Icons.Outlined.SelectAll,
+                    onClick = screenModel::selectAll,
+                ),
+                AppBar.Action(
+                    title = stringResource(MR.strings.action_select_inverse),
+                    icon = Icons.Outlined.FlipToBack,
+                    onClick = screenModel::invertSelection,
+                ),
+                AppBar.Action(
+                    title = stringResource(MR.strings.action_delete),
+                    icon = Icons.Outlined.Delete,
+                    onClick = { screenModel.setDialog(AnimeHistoryScreenModel.Dialog.DeleteSelected) },
+                ),
+            )
+        } else {
+            persistentListOf(
+                AppBar.Action(
+                    title = stringResource(MR.strings.pref_clear_history),
+                    icon = Icons.Outlined.DeleteSweep,
+                    onClick = { screenModel.setDialog(AnimeHistoryScreenModel.Dialog.DeleteAll) },
+                ),
+            )
+        },
+        numberTitle = state.selection.size,
+        cancelAction = screenModel::clearSelection,
         navigateUp = navigateUp,
     )
 }

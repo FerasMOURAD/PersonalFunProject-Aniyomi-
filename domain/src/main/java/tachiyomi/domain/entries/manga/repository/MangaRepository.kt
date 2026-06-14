@@ -38,4 +38,6 @@ interface MangaRepository {
     suspend fun updateManga(update: MangaUpdate): Boolean
 
     suspend fun updateAllManga(mangaUpdates: List<MangaUpdate>): Boolean
+
+    suspend fun incrementTotalReadDuration(mangaId: Long, duration: Long)
 }

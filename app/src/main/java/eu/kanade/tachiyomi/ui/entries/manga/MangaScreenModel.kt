@@ -123,6 +123,9 @@ class MangaScreenModel(
     val snackbarHostState: SnackbarHostState = SnackbarHostState(),
 ) : StateScreenModel<MangaScreenModel.State>(State.Loading) {
 
+    private val aniListRecommendations = eu.kanade.tachiyomi.network.services.AniListRecommendations()
+
+
     private val successState: State.Success?
         get() = state.value as? State.Success
 
@@ -252,6 +255,12 @@ class MangaScreenModel(
 
             // Initial loading finished
             updateSuccessState { it.copy(isRefreshingData = false) }
+
+            // Fetch recommendations
+            if (manga.title.isNotBlank()) {
+                val recs = aniListRecommendations.getRecommendations(manga.title, "MANGA")
+                updateSuccessState { it.copy(recommendations = recs) }
+            }
         }
     }
 
@@ -1153,6 +1162,7 @@ class MangaScreenModel(
             val isRefreshingData: Boolean = false,
             val dialog: Dialog? = null,
             val hasPromptedToAddBefore: Boolean = false,
+            val recommendations: List<eu.kanade.tachiyomi.network.services.AniListRecommendation> = emptyList(),
         ) : State {
             val processedChapters by lazy {
                 chapters.applyFilters(manga).toList()

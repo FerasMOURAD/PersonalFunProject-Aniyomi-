@@ -31,6 +31,8 @@ fun AnimeHistoryScreen(
     onClickCover: (animeId: Long) -> Unit,
     onClickResume: (animeId: Long, episodeId: Long) -> Unit,
     onClickFavorite: (animeId: Long) -> Unit,
+    onItemClick: (AnimeHistoryWithRelations) -> Unit,
+    onItemLongClick: (AnimeHistoryWithRelations) -> Unit,
     onDialogChange: (AnimeHistoryScreenModel.Dialog?) -> Unit,
     searchQuery: String? = null,
 ) {
@@ -58,6 +60,9 @@ fun AnimeHistoryScreen(
                     onClickResume = { history -> onClickResume(history.animeId, history.episodeId) },
                     onClickDelete = { item -> onDialogChange(AnimeHistoryScreenModel.Dialog.Delete(item)) },
                     onClickFavorite = { history -> onClickFavorite(history.animeId) },
+                    onItemClick = onItemClick,
+                    onItemLongClick = onItemLongClick,
+                    selected = state.selection,
                 )
             }
         }
@@ -72,6 +77,9 @@ private fun AnimeHistoryScreenContent(
     onClickResume: (AnimeHistoryWithRelations) -> Unit,
     onClickDelete: (AnimeHistoryWithRelations) -> Unit,
     onClickFavorite: (AnimeHistoryWithRelations) -> Unit,
+    onItemClick: (AnimeHistoryWithRelations) -> Unit,
+    onItemLongClick: (AnimeHistoryWithRelations) -> Unit,
+    selected: List<Long>,
 ) {
     FastScrollLazyColumn(
         contentPadding = contentPadding,
@@ -102,6 +110,9 @@ private fun AnimeHistoryScreenContent(
                         onClickResume = { onClickResume(value) },
                         onClickDelete = { onClickDelete(value) },
                         onClickFavorite = { onClickFavorite(value) },
+                        onItemClick = { onItemClick(value) },
+                        onItemLongClick = { onItemLongClick(value) },
+                        selected = selected.contains(value.id),
                     )
                 }
             }
@@ -129,6 +140,8 @@ internal fun HistoryScreenPreviews(
             onClickResume = { _, _ -> run {} },
             onDialogChange = {},
             onClickFavorite = {},
+            onItemClick = {},
+            onItemLongClick = {},
         )
     }
 }

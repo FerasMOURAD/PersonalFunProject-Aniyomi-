@@ -318,6 +318,7 @@ private fun AnimeScreenSmallImpl(
     onSeasonClicked: (SeasonAnime) -> Unit,
     onClickContinueWatching: ((SeasonAnime) -> Unit)?,
 ) {
+    val navigator = LocalNavigator.currentOrThrow
     val density = LocalDensity.current
     val offsetGridPaddingPx = with(density) { GRID_PADDING.roundToPx() }
     val gridSize = remember(state.anime) { state.anime.seasonDisplayGridSize }
@@ -516,6 +517,19 @@ private fun AnimeScreenSmallImpl(
                     }
 
                     item(
+                        key = EntryScreenItem.RECOMMENDATIONS,
+                        contentType = EntryScreenItem.RECOMMENDATIONS,
+                        span = { GridItemSpan(maxLineSpan) },
+                    ) {
+                        eu.kanade.presentation.entries.components.RecommendationsCarousel(
+                            recommendations = state.recommendations,
+                            onClick = { title -> onSearch(title, true) },
+                            onMoreClick = { navigator.push(eu.kanade.tachiyomi.ui.entries.RecommendationsScreen(state.anime.title, state.recommendations, false)) },
+                            modifier = Modifier.ignorePadding(offsetGridPaddingPx),
+                        )
+                    }
+
+                    item(
                         key = EntryScreenItem.ITEM_HEADER,
                         contentType = EntryScreenItem.ITEM_HEADER,
                         span = { GridItemSpan(maxLineSpan) },
@@ -663,6 +677,7 @@ fun AnimeScreenLargeImpl(
     onSeasonClicked: (SeasonAnime) -> Unit,
     onClickContinueWatching: ((SeasonAnime) -> Unit)?,
 ) {
+    val navigator = LocalNavigator.currentOrThrow
     val layoutDirection = LocalLayoutDirection.current
     val density = LocalDensity.current
 
@@ -825,6 +840,11 @@ fun AnimeScreenLargeImpl(
                                 tagsProvider = { state.anime.genre },
                                 onTagSearch = onTagSearch,
                                 onCopyTagToClipboard = onCopyTagToClipboard,
+                            )
+                            eu.kanade.presentation.entries.components.RecommendationsCarousel(
+                                recommendations = state.recommendations,
+                                onClick = { title -> onSearch(title, true) },
+                                onMoreClick = { navigator.push(eu.kanade.tachiyomi.ui.entries.RecommendationsScreen(state.anime.title, state.recommendations, false)) },
                             )
                         }
                     },

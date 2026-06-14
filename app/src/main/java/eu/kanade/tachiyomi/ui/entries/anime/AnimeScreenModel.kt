@@ -144,6 +144,9 @@ class AnimeScreenModel(
     val snackbarHostState: SnackbarHostState = SnackbarHostState(),
 ) : StateScreenModel<AnimeScreenModel.State>(State.Loading) {
 
+    private val aniListRecommendations = eu.kanade.tachiyomi.network.services.AniListRecommendations()
+
+
     private val successState: State.Success?
         get() = state.value as? State.Success
 
@@ -264,6 +267,12 @@ class AnimeScreenModel(
 
             // Initial loading finished
             updateSuccessState { it.copy(isRefreshingData = false) }
+
+            // Fetch recommendations
+            if (anime.title.isNotBlank()) {
+                val recs = aniListRecommendations.getRecommendations(anime.title, "ANIME")
+                updateSuccessState { it.copy(recommendations = recs) }
+            }
         }
     }
 
@@ -1593,6 +1602,7 @@ class AnimeScreenModel(
                 anime.nextEpisodeToAir,
                 anime.nextEpisodeAiringAt,
             ),
+            val recommendations: List<eu.kanade.tachiyomi.network.services.AniListRecommendation> = emptyList(),
         ) : State {
 
             val processedSeasons by lazy {

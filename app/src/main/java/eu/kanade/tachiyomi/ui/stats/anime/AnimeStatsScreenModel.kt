@@ -15,6 +15,7 @@ import eu.kanade.tachiyomi.data.track.AnimeTracker
 import eu.kanade.tachiyomi.data.track.TrackerManager
 import kotlinx.coroutines.flow.update
 import tachiyomi.core.common.util.lang.launchIO
+import tachiyomi.domain.entries.anime.model.asAnimeCover
 import tachiyomi.domain.entries.anime.interactor.GetLibraryAnime
 import tachiyomi.domain.items.episode.interactor.GetEpisodesByAnimeId
 import tachiyomi.domain.library.anime.LibraryAnime
@@ -76,12 +77,37 @@ class AnimeStatsScreenModel(
                 trackerCount = loggedInTrackers.size,
             )
 
+            val allAnimeStats = distinctLibraryAnime
+                .map { libraryAnime ->
+                    // episode.totalSeconds / lastSecondSeen are stored in ms internally
+                    val durationMs = getEpisodesByAnimeId.await(libraryAnime.anime.id)
+                        .sumOf { episode ->
+                            if (episode.seen) episode.totalSeconds else episode.lastSecondSeen
+                        }
+                    StatsData.EntryTimeStat(
+                        id = libraryAnime.id,
+                        title = libraryAnime.anime.title,
+                        coverData = libraryAnime.anime.asAnimeCover(),
+                        durationMs = durationMs,
+                    )
+                }
+                // 10-minute minimum filter
+                .filter { it.durationMs >= 10L * 60 * 1000 }
+                .sortedByDescending { it.durationMs }
+                .take(25)
+
+            val entryTimesData = StatsData.AnimeEntryTimeList(
+                entries = allAnimeStats,
+                totalDurationMs = allAnimeStats.sumOf { it.durationMs },
+            )
+
             mutableState.update {
                 StatsScreenState.SuccessAnime(
                     overview = overviewStatData,
                     titles = titlesStatData,
                     episodes = chaptersStatData,
                     trackers = trackersStatData,
+                    entryTimes = entryTimesData,
                 )
             }
         }

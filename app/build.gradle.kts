@@ -2,6 +2,11 @@ import mihon.buildlogic.Config
 import mihon.buildlogic.getBuildTime
 import mihon.buildlogic.getCommitCount
 import mihon.buildlogic.getGitSha
+import java.util.Properties
+
+val localProperties = Properties().apply {
+    rootProject.file("local.properties").takeIf { it.exists() }?.inputStream()?.use { load(it) }
+}
 
 plugins {
     id("mihon.android.application")
@@ -41,7 +46,14 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
-
+	signingConfigs {
+    create("release") {
+        storeFile = file(localProperties.getProperty("RELEASE_STORE_FILE"))
+        storePassword = localProperties.getProperty("RELEASE_STORE_PASSWORD")
+        keyAlias = localProperties.getProperty("RELEASE_KEY_ALIAS")
+        keyPassword = localProperties.getProperty("RELEASE_KEY_PASSWORD")
+    }
+}
     buildTypes {
         val debug by getting {
             applicationIdSuffix = ".dev"
@@ -51,7 +63,7 @@ android {
         val release by getting {
             isMinifyEnabled = Config.enableCodeShrink
             isShrinkResources = Config.enableCodeShrink
-
+	    signingConfig = signingConfigs.getByName("release")
             proguardFiles("proguard-android-optimize.txt", "proguard-rules.pro")
 
             buildConfigField("String", "BUILD_TIME", "\"${getBuildTime(useLastCommitTime = true)}\"")

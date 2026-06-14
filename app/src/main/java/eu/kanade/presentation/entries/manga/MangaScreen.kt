@@ -269,6 +269,7 @@ private fun MangaScreenSmallImpl(
     onAllChapterSelected: (Boolean) -> Unit,
     onInvertSelection: () -> Unit,
 ) {
+    val navigator = LocalNavigator.currentOrThrow
     val chapterListState = rememberLazyListState()
 
     val (chapters, listItem, isAnySelected) = remember(state) {
@@ -437,6 +438,17 @@ private fun MangaScreenSmallImpl(
                     }
 
                     item(
+                        key = EntryScreenItem.RECOMMENDATIONS,
+                        contentType = EntryScreenItem.RECOMMENDATIONS,
+                    ) {
+                        eu.kanade.presentation.entries.components.RecommendationsCarousel(
+                            recommendations = state.recommendations,
+                            onClick = { title -> onSearch(title, true) },
+                            onMoreClick = { navigator.push(eu.kanade.tachiyomi.ui.entries.RecommendationsScreen(state.manga.title, state.recommendations, true)) }
+                        )
+                    }
+
+                    item(
                         key = EntryScreenItem.ITEM_HEADER,
                         contentType = EntryScreenItem.ITEM_HEADER,
                     ) {
@@ -518,6 +530,7 @@ fun MangaScreenLargeImpl(
     onAllChapterSelected: (Boolean) -> Unit,
     onInvertSelection: () -> Unit,
 ) {
+    val navigator = LocalNavigator.currentOrThrow
     val layoutDirection = LocalLayoutDirection.current
     val density = LocalDensity.current
 
@@ -664,6 +677,11 @@ fun MangaScreenLargeImpl(
                             tagsProvider = { state.manga.genre },
                             onTagSearch = onTagSearch,
                             onCopyTagToClipboard = onCopyTagToClipboard,
+                        )
+                        eu.kanade.presentation.entries.components.RecommendationsCarousel(
+                            recommendations = state.recommendations,
+                            onClick = { title -> onSearch(title, true) },
+                            onMoreClick = { navigator.push(eu.kanade.tachiyomi.ui.entries.RecommendationsScreen(state.manga.title, state.recommendations, true)) }
                         )
                     }
                 },

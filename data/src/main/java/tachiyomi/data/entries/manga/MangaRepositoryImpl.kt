@@ -171,8 +171,13 @@ class MangaRepositoryImpl(
                     updateStrategy = value.updateStrategy?.let(MangaUpdateStrategyColumnAdapter::encode),
                     version = value.version,
                     isSyncing = 0,
+                    totalReadDuration = value.totalReadDuration,
                 )
             }
         }
+    }
+
+    override suspend fun incrementTotalReadDuration(mangaId: Long, duration: Long) {
+        handler.await { mangasQueries.incrementTotalReadDuration(duration, mangaId) }
     }
 }

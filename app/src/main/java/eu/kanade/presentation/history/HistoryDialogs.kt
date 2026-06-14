@@ -100,6 +100,41 @@ fun HistoryDeleteAllDialog(
     )
 }
 
+@Composable
+fun HistoryDeleteSelectedDialog(
+    onDismissRequest: () -> Unit,
+    onDelete: () -> Unit,
+    isManga: Boolean,
+) {
+    AlertDialog(
+        title = {
+            Text(text = stringResource(MR.strings.action_remove))
+        },
+        text = {
+            val subtitle = if (isManga) {
+                MR.strings.dialog_with_checkbox_remove_description
+            } else {
+                AYMR.strings.dialog_with_checkbox_remove_description_anime
+            }
+            Text(text = stringResource(subtitle))
+        },
+        onDismissRequest = onDismissRequest,
+        confirmButton = {
+            TextButton(onClick = {
+                onDelete()
+                onDismissRequest()
+            }) {
+                Text(text = stringResource(MR.strings.action_remove))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismissRequest) {
+                Text(text = stringResource(MR.strings.action_cancel))
+            }
+        },
+    )
+}
+
 @PreviewLightDark
 @Composable
 private fun HistoryDeleteDialogPreview() {

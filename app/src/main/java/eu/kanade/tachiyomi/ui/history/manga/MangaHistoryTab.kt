@@ -20,6 +20,10 @@ import eu.kanade.presentation.entries.manga.DuplicateMangaDialog
 import eu.kanade.presentation.history.HistoryDeleteAllDialog
 import eu.kanade.presentation.history.HistoryDeleteDialog
 import eu.kanade.presentation.history.manga.MangaHistoryScreen
+import eu.kanade.presentation.history.HistoryDeleteSelectedDialog
+import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.SelectAll
+import androidx.compose.material.icons.outlined.FlipToBack
 import eu.kanade.tachiyomi.ui.browse.manga.migration.search.MigrateMangaDialog
 import eu.kanade.tachiyomi.ui.browse.manga.migration.search.MigrateMangaDialogScreenModel
 import eu.kanade.tachiyomi.ui.category.CategoriesTab
@@ -86,6 +90,14 @@ fun Screen.mangaHistoryTab(
                 onClickResume = screenModel::getNextChapterForManga,
                 onDialogChange = screenModel::setDialog,
                 onClickFavorite = screenModel::addFavorite,
+                onItemClick = { item ->
+                    if (state.selection.isNotEmpty()) {
+                        screenModel.toggleSelection(item.id)
+                    } else {
+                        screenModel.getNextChapterForManga(item.mangaId, item.chapterId)
+                    }
+                },
+                onItemLongClick = { item -> screenModel.toggleSelection(item.id) },
             )
 
             val onDismissRequest = { screenModel.setDialog(null) }
@@ -107,6 +119,13 @@ fun Screen.mangaHistoryTab(
                     HistoryDeleteAllDialog(
                         onDismissRequest = onDismissRequest,
                         onDelete = screenModel::removeAllHistory,
+                    )
+                }
+                is MangaHistoryScreenModel.Dialog.DeleteSelected -> {
+                    HistoryDeleteSelectedDialog(
+                        onDismissRequest = onDismissRequest,
+                        onDelete = screenModel::removeSelectedHistory,
+                        isManga = true,
                     )
                 }
                 is MangaHistoryScreenModel.Dialog.DuplicateManga -> {
@@ -171,14 +190,35 @@ fun Screen.mangaHistoryTab(
                 }
             }
         },
-        actions =
-        persistentListOf(
-            AppBar.Action(
-                title = stringResource(MR.strings.pref_clear_history),
-                icon = Icons.Outlined.DeleteSweep,
-                onClick = { screenModel.setDialog(MangaHistoryScreenModel.Dialog.DeleteAll) },
-            ),
-        ),
+        actions = if (state.selection.isNotEmpty()) {
+            persistentListOf(
+                AppBar.Action(
+                    title = stringResource(MR.strings.action_select_all),
+                    icon = Icons.Outlined.SelectAll,
+                    onClick = screenModel::selectAll,
+                ),
+                AppBar.Action(
+                    title = stringResource(MR.strings.action_select_inverse),
+                    icon = Icons.Outlined.FlipToBack,
+                    onClick = screenModel::invertSelection,
+                ),
+                AppBar.Action(
+                    title = stringResource(MR.strings.action_delete),
+                    icon = Icons.Outlined.Delete,
+                    onClick = { screenModel.setDialog(MangaHistoryScreenModel.Dialog.DeleteSelected) },
+                ),
+            )
+        } else {
+            persistentListOf(
+                AppBar.Action(
+                    title = stringResource(MR.strings.pref_clear_history),
+                    icon = Icons.Outlined.DeleteSweep,
+                    onClick = { screenModel.setDialog(MangaHistoryScreenModel.Dialog.DeleteAll) },
+                ),
+            )
+        },
+        numberTitle = state.selection.size,
+        cancelAction = screenModel::clearSelection,
         navigateUp = navigateUp,
     )
 }

@@ -1,6 +1,6 @@
 package eu.kanade.presentation.history.anime.components
 
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -32,6 +32,7 @@ import tachiyomi.i18n.MR
 import tachiyomi.i18n.aniyomi.AYMR
 import tachiyomi.presentation.core.components.material.padding
 import tachiyomi.presentation.core.i18n.stringResource
+import tachiyomi.presentation.core.util.selectedBackground
 
 private val HistoryItemHeight = 96.dp
 
@@ -42,11 +43,18 @@ fun AnimeHistoryItem(
     onClickResume: () -> Unit,
     onClickDelete: () -> Unit,
     onClickFavorite: () -> Unit,
+    onItemClick: () -> Unit,
+    onItemLongClick: () -> Unit,
+    selected: Boolean,
     modifier: Modifier = Modifier,
 ) {
     Row(
         modifier = modifier
-            .clickable(onClick = onClickResume)
+            .selectedBackground(selected)
+            .combinedClickable(
+                onClick = onItemClick,
+                onLongClick = onItemLongClick,
+            )
             .height(HistoryItemHeight)
             .padding(
                 horizontal = MaterialTheme.padding.medium,
@@ -122,6 +130,9 @@ private fun HistoryItemPreviews(
                 onClickResume = {},
                 onClickDelete = {},
                 onClickFavorite = {},
+                onItemClick = {},
+                onItemLongClick = {},
+                selected = false,
             )
         }
     }

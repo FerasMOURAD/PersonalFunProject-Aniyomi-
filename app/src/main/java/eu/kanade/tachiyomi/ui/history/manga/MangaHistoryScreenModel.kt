@@ -247,15 +247,56 @@ class MangaHistoryScreenModel(
         }
     }
 
+    fun toggleSelection(historyId: Long) {
+        mutableState.update { state ->
+            val newSelection = state.selection.toMutableList().apply {
+                if (contains(historyId)) remove(historyId) else add(historyId)
+            }
+            state.copy(selection = newSelection)
+        }
+    }
+
+    fun selectAll() {
+        mutableState.update { state ->
+            state.copy(selection = state.list?.mapNotNull { (it as? MangaHistoryUiModel.Item)?.item?.id } ?: emptyList())
+        }
+    }
+
+    fun clearSelection() {
+        mutableState.update { state ->
+            state.copy(selection = emptyList())
+        }
+    }
+
+    fun invertSelection() {
+        mutableState.update { state ->
+            val allIds = state.list?.mapNotNull { (it as? MangaHistoryUiModel.Item)?.item?.id } ?: emptyList()
+            state.copy(selection = allIds.filterNot { it in state.selection })
+        }
+    }
+
+    fun removeSelectedHistory() {
+        screenModelScope.launchIO {
+            val selectedIds = mutableState.value.selection
+            val items = mutableState.value.list?.mapNotNull { (it as? MangaHistoryUiModel.Item)?.item } ?: emptyList()
+            items.filter { it.id in selectedIds }.forEach {
+                removeHistory.await(it)
+            }
+            clearSelection()
+        }
+    }
+
     @Immutable
     data class State(
         val searchQuery: String? = null,
         val list: List<MangaHistoryUiModel>? = null,
         val dialog: Dialog? = null,
+        val selection: List<Long> = emptyList(),
     )
 
     sealed interface Dialog {
         data object DeleteAll : Dialog
+        data object DeleteSelected : Dialog
         data class Delete(val history: MangaHistoryWithRelations) : Dialog
         data class DuplicateManga(val manga: Manga, val duplicate: Manga) : Dialog
         data class ChangeCategory(

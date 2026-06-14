@@ -1,6 +1,6 @@
 package eu.kanade.presentation.history.manga.components
 
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -31,6 +31,7 @@ import tachiyomi.domain.history.manga.model.MangaHistoryWithRelations
 import tachiyomi.i18n.MR
 import tachiyomi.presentation.core.components.material.padding
 import tachiyomi.presentation.core.i18n.stringResource
+import tachiyomi.presentation.core.util.selectedBackground
 
 private val HISTORY_ITEM_HEIGHT = 96.dp
 
@@ -41,11 +42,18 @@ fun MangaHistoryItem(
     onClickResume: () -> Unit,
     onClickDelete: () -> Unit,
     onClickFavorite: () -> Unit,
+    onItemClick: () -> Unit,
+    onItemLongClick: () -> Unit,
+    selected: Boolean,
     modifier: Modifier = Modifier,
 ) {
     Row(
         modifier = modifier
-            .clickable(onClick = onClickResume)
+            .selectedBackground(selected)
+            .combinedClickable(
+                onClick = onItemClick,
+                onLongClick = onItemLongClick,
+            )
             .height(HISTORY_ITEM_HEIGHT)
             .padding(
                 horizontal = MaterialTheme.padding.medium,
@@ -121,6 +129,9 @@ internal fun HistoryItemPreviews(
                 onClickResume = {},
                 onClickDelete = {},
                 onClickFavorite = {},
+                onItemClick = {},
+                onItemLongClick = {},
+                selected = false,
             )
         }
     }

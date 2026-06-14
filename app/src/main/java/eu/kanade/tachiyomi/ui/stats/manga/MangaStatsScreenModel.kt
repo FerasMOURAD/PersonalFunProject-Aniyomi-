@@ -15,6 +15,7 @@ import eu.kanade.tachiyomi.data.track.TrackerManager
 import eu.kanade.tachiyomi.source.model.SManga
 import kotlinx.coroutines.flow.update
 import tachiyomi.core.common.util.lang.launchIO
+import tachiyomi.domain.entries.manga.model.asMangaCover
 import tachiyomi.domain.entries.manga.interactor.GetLibraryManga
 import tachiyomi.domain.history.manga.interactor.GetTotalReadDuration
 import tachiyomi.domain.library.manga.LibraryManga
@@ -76,12 +77,33 @@ class MangaStatsScreenModel(
                 trackerCount = loggedInTrackers.size,
             )
 
+            val allMangaStats = distinctLibraryManga
+                .map { libraryManga ->
+                    StatsData.EntryTimeStat(
+                        id = libraryManga.id,
+                        title = libraryManga.manga.title,
+                        coverData = libraryManga.manga.asMangaCover(),
+                        // Use the persistent counter — survives history deletion
+                        durationMs = libraryManga.manga.totalReadDuration,
+                    )
+                }
+                // 10-minute minimum filter
+                .filter { it.durationMs >= 10L * 60 * 1000 }
+                .sortedByDescending { it.durationMs }
+                .take(25)
+
+            val entryTimesData = StatsData.MangaEntryTimeList(
+                entries = allMangaStats,
+                totalDurationMs = allMangaStats.sumOf { it.durationMs },
+            )
+
             mutableState.update {
                 StatsScreenState.SuccessManga(
                     overview = overviewStatData,
                     titles = titlesStatData,
                     chapters = chaptersStatData,
                     trackers = trackersStatData,
+                    entryTimes = entryTimesData,
                 )
             }
         }

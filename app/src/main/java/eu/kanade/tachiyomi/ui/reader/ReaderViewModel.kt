@@ -74,6 +74,7 @@ import tachiyomi.domain.items.chapter.interactor.UpdateChapter
 import tachiyomi.domain.items.chapter.model.ChapterUpdate
 import tachiyomi.domain.items.chapter.service.getChapterSort
 import tachiyomi.domain.library.service.LibraryPreferences
+import tachiyomi.domain.entries.manga.repository.MangaRepository
 import tachiyomi.domain.source.manga.service.MangaSourceManager
 import tachiyomi.source.local.entries.manga.isLocal
 import uy.kohesive.injekt.Injekt
@@ -103,6 +104,7 @@ class ReaderViewModel @JvmOverloads constructor(
     private val setMangaViewerFlags: SetMangaViewerFlags = Injekt.get(),
     private val getIncognitoState: GetMangaIncognitoState = Injekt.get(),
     private val libraryPreferences: LibraryPreferences = Injekt.get(),
+    private val mangaRepository: MangaRepository = Injekt.get(),
 ) : ViewModel() {
 
     private val mutableState = MutableStateFlow(State())
@@ -581,9 +583,14 @@ class ReaderViewModel @JvmOverloads constructor(
     }
 
     fun flushReadTimer() {
-        getCurrentChapter()?.let {
+        getCurrentChapter()?.let { readerChapter ->
+            if (incognitoMode) return@let
+            val readAt = Date()
+            val sessionReadDuration = chapterReadStartTime?.let { readAt.time - it } ?: 0
+            chapterReadStartTime = null
+
             viewModelScope.launchNonCancellable {
-                updateHistory(it)
+                updateHistory(readerChapter, readAt, sessionReadDuration)
             }
         }
     }
@@ -591,15 +598,17 @@ class ReaderViewModel @JvmOverloads constructor(
     /**
      * Saves the chapter last read history if incognito mode isn't on.
      */
-    private suspend fun updateHistory(readerChapter: ReaderChapter) {
-        if (incognitoMode) return
-
+    private suspend fun updateHistory(readerChapter: ReaderChapter, readAt: Date, sessionReadDuration: Long) {
         val chapterId = readerChapter.chapter.id!!
-        val readAt = Date()
-        val sessionReadDuration = chapterReadStartTime?.let { readAt.time - it } ?: 0
 
         upsertHistory.await(MangaHistoryUpdate(chapterId, readAt, sessionReadDuration))
-        chapterReadStartTime = null
+
+        // Accumulate into the manga-level counter so stats survive history deletion
+        if (sessionReadDuration > 0) {
+            manga?.id?.let { mangaId ->
+                mangaRepository.incrementTotalReadDuration(mangaId, sessionReadDuration)
+            }
+        }
     }
 
     /**

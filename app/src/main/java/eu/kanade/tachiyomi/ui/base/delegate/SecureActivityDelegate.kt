@@ -79,20 +79,31 @@ class SecureActivityDelegateImpl : SecureActivityDelegate, DefaultLifecycleObser
     private val preferences: BasePreferences by injectLazy()
     private val securityPreferences: SecurityPreferences by injectLazy()
 
+    private var isSecureScreenEnabled = false
+
     override fun registerSecureActivity(activity: AppCompatActivity) {
         this.activity = activity
         activity.lifecycle.addObserver(this)
     }
 
     override fun onCreate(owner: LifecycleOwner) {
-        setSecureScreen()
+        setupSecureScreenObserver()
     }
 
     override fun onResume(owner: LifecycleOwner) {
         setAppLock()
+        // Always allow screenshots and recording while actively using the app
+        activity.window.setSecureScreen(false)
     }
 
-    private fun setSecureScreen() {
+    override fun onPause(owner: LifecycleOwner) {
+        // Only secure the screen when leaving the app to hide contents in the recents menu
+        if (isSecureScreenEnabled) {
+            activity.window.setSecureScreen(true)
+        }
+    }
+
+    private fun setupSecureScreenObserver() {
         val secureScreenFlow = securityPreferences.secureScreen().changes()
         val incognitoModeFlow = preferences.incognitoMode().changes()
         combine(secureScreenFlow, incognitoModeFlow) { secureScreen, incognitoMode ->
@@ -100,7 +111,7 @@ class SecureActivityDelegateImpl : SecureActivityDelegate, DefaultLifecycleObser
                 secureScreen == SecurityPreferences.SecureScreenMode.INCOGNITO &&
                 incognitoMode
         }
-            .onEach(activity.window::setSecureScreen)
+            .onEach { isSecureScreenEnabled = it }
             .launchIn(activity.lifecycleScope)
     }
 
