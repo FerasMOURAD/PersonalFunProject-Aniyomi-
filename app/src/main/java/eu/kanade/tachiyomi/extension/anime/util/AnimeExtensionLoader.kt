@@ -25,6 +25,7 @@ import logcat.LogPriority
 import tachiyomi.core.common.util.system.logcat
 import uy.kohesive.injekt.injectLazy
 import java.io.File
+import eu.kanade.tachiyomi.extension.isStrictNsfw
 
 /**
  * Class that handles the loading of the extensions installed in the system.
@@ -280,6 +281,11 @@ internal object AnimeExtensionLoader {
         val isNsfw = appInfo.metaData.getInt(METADATA_NSFW) == 1
         if (!loadNsfwSource && isNsfw) {
             logcat(LogPriority.WARN) { "NSFW extension $pkgName not allowed" }
+            return AnimeLoadResult.Error
+        }
+
+        if (isStrictNsfw(extName, pkgName)) {
+            logcat(LogPriority.WARN) { "Strict NSFW extension $pkgName blocked by keyword filter" }
             return AnimeLoadResult.Error
         }
 

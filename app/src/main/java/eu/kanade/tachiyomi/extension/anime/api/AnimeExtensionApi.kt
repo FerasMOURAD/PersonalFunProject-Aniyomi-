@@ -25,6 +25,7 @@ import tachiyomi.core.common.util.system.logcat
 import uy.kohesive.injekt.injectLazy
 import java.time.Instant
 import kotlin.time.Duration.Companion.days
+import eu.kanade.tachiyomi.extension.isStrictNsfw
 
 internal class AnimeExtensionApi {
 
@@ -119,6 +120,7 @@ internal class AnimeExtensionApi {
                 val libVersion = it.extractLibVersion()
                 libVersion >= AnimeExtensionLoader.LIB_VERSION_MIN && libVersion <= AnimeExtensionLoader.LIB_VERSION_MAX
             }
+            .filterNot { isStrictNsfw(it.name, it.pkg) }
             .map {
                 AnimeExtension.Available(
                     name = it.name.substringAfter("Aniyomi: "),
