@@ -26,6 +26,8 @@ import tachiyomi.domain.library.service.LibraryPreferences.Companion.ENTRY_NON_V
 import tachiyomi.domain.track.manga.interactor.GetMangaTracks
 import tachiyomi.domain.track.manga.model.MangaTrack
 import tachiyomi.source.local.entries.manga.isLocal
+import tachiyomi.data.handlers.manga.MangaDatabaseHandler
+import tachiyomi.domain.entries.manga.model.MangaCover
 import uy.kohesive.injekt.Injekt
 import uy.kohesive.injekt.api.get
 
@@ -36,11 +38,16 @@ class MangaStatsScreenModel(
     private val getTracks: GetMangaTracks = Injekt.get(),
     private val preferences: LibraryPreferences = Injekt.get(),
     private val trackerManager: TrackerManager = Injekt.get(),
+    private val handler: MangaDatabaseHandler = Injekt.get(),
 ) : StateScreenModel<StatsScreenState>(StatsScreenState.Loading) {
 
     private val loggedInTrackers by lazy { trackerManager.loggedInTrackers().filter { it is MangaTracker } }
 
     init {
+        calculateStats()
+    }
+
+    private fun calculateStats() {
         screenModelScope.launchIO {
             val libraryManga = getLibraryManga.await()
 
@@ -51,12 +58,15 @@ class MangaStatsScreenModel(
 
             val meanScore = getTrackMeanScore(scoredMangaTrackerMap)
 
+            val readMangas = handler.awaitList { mangasQueries.getReadManga() }
+            val totalReadDuration = readMangas.sumOf { it.total_read_duration }
+
             val overviewStatData = StatsData.MangaOverview(
                 libraryMangaCount = distinctLibraryManga.size,
                 completedMangaCount = distinctLibraryManga.count {
                     it.manga.status.toInt() == SManga.COMPLETED && it.unreadCount == 0L
                 },
-                totalReadDuration = getTotalReadDuration.await(),
+                totalReadDuration = totalReadDuration,
             )
 
             val titlesStatData = StatsData.MangaTitles(
@@ -77,14 +87,22 @@ class MangaStatsScreenModel(
                 trackerCount = loggedInTrackers.size,
             )
 
-            val allMangaStats = distinctLibraryManga
-                .map { libraryManga ->
+            val allMangaStats = readMangas
+                .groupBy { it.title.lowercase() }
+                .map { (_, entries) ->
+                    val maxEntry = entries.maxByOrNull { it.total_read_duration }!!
                     StatsData.EntryTimeStat(
-                        id = libraryManga.id,
-                        title = libraryManga.manga.title,
-                        coverData = libraryManga.manga.asMangaCover(),
+                        id = maxEntry._id,
+                        title = maxEntry.title,
+                        coverData = MangaCover(
+                            mangaId = maxEntry._id,
+                            sourceId = maxEntry.source,
+                            isMangaFavorite = maxEntry.favorite,
+                            url = maxEntry.thumbnail_url,
+                            lastModified = maxEntry.cover_last_modified,
+                        ),
                         // Use the persistent counter — survives history deletion
-                        durationMs = libraryManga.manga.totalReadDuration,
+                        durationMs = maxEntry.total_read_duration,
                     )
                 }
                 // 10-minute minimum filter
@@ -106,6 +124,13 @@ class MangaStatsScreenModel(
                     entryTimes = entryTimesData,
                 )
             }
+        }
+    }
+
+    fun deleteStat(mangaId: Long) {
+        screenModelScope.launchIO {
+            handler.await { mangasQueries.resetTotalReadDuration(mangaId) }
+            calculateStats()
         }
     }
 

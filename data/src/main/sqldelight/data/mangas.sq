@@ -88,6 +88,11 @@ WHERE favorite = 0 AND _id IN (
     WHERE read = 1 OR last_page_read != 0
 );
 
+getReadManga:
+SELECT *
+FROM mangas
+WHERE total_read_duration > 0;
+
 getAllManga:
 SELECT *
 FROM mangas;
@@ -138,6 +143,11 @@ resetIsSyncing:
 UPDATE mangas
 SET is_syncing = 0
 WHERE is_syncing = 1;
+
+resetTotalReadDuration:
+UPDATE mangas
+SET total_read_duration = 0
+WHERE _id = :mangaId;
 
 getSourceIdsWithNonLibraryManga:
 SELECT source, COUNT(*) AS manga_count

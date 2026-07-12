@@ -1,6 +1,8 @@
 package eu.kanade.presentation.more.stats.components
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
@@ -49,10 +51,12 @@ private val BAR_COLORS = listOf(
     Color(0xFF2D3A1A), // dark olive
 )
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun EntryTimeBarItem(
     entry: StatsData.EntryTimeStat,
     maxDuration: Long,
+    onLongClick: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val fraction = if (maxDuration > 0) {
@@ -73,7 +77,12 @@ fun EntryTimeBarItem(
     }
 
     BoxWithConstraints(
-        modifier = modifier.height(BAR_HEIGHT),
+        modifier = modifier
+            .height(BAR_HEIGHT)
+            .combinedClickable(
+                onClick = {},
+                onLongClick = onLongClick
+            ),
     ) {
         val totalWidth = maxWidth
         // Bar ends here; clamp so the info column always has MIN_INFO_WIDTH

@@ -34,6 +34,7 @@ fun Screen.animeStatsTab(): TabContent {
                 AnimeStatsScreenContent(
                     state = state as StatsScreenState.SuccessAnime,
                     paddingValues = contentPadding,
+                    onDelete = { id -> screenModel.deleteStat(id) },
                 )
             }
         },

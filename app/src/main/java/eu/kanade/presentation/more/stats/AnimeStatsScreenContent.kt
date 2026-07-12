@@ -14,6 +14,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.getValue
+import tachiyomi.i18n.MR
+import tachiyomi.presentation.core.i18n.stringResource
 import eu.kanade.presentation.more.stats.components.EntryTimeBarItem
 import eu.kanade.presentation.more.stats.data.StatsData
 
@@ -32,7 +39,9 @@ private fun formatTotalDuration(ms: Long): String {
 fun AnimeStatsScreenContent(
     state: StatsScreenState.SuccessAnime,
     paddingValues: PaddingValues,
+    onDelete: (Long) -> Unit = {},
 ) {
+    var dialogDeleteId by remember { mutableStateOf<Long?>(null) }
     val maxDuration = remember(state.entryTimes.entries) {
         state.entryTimes.entries.maxOfOrNull { it.durationMs } ?: 1L
     }
@@ -54,9 +63,33 @@ fun AnimeStatsScreenContent(
             EntryTimeBarItem(
                 entry = entry,
                 maxDuration = maxDuration,
+                onLongClick = { dialogDeleteId = entry.id },
                 modifier = Modifier.fillMaxWidth(),
             )
         }
+    }
+
+    dialogDeleteId?.let { id ->
+        AlertDialog(
+            onDismissRequest = { dialogDeleteId = null },
+            title = { Text(text = "Delete watch time?") },
+            text = { Text(text = "Are you sure you want to delete the watch time for this entry from your statistics?") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        onDelete(id)
+                        dialogDeleteId = null
+                    }
+                ) {
+                    Text(text = stringResource(MR.strings.action_delete))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { dialogDeleteId = null }) {
+                    Text(text = stringResource(MR.strings.action_cancel))
+                }
+            }
+        )
     }
 }
 

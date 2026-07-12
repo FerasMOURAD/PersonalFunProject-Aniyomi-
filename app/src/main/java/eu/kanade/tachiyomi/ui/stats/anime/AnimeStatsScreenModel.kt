@@ -26,6 +26,8 @@ import tachiyomi.domain.library.service.LibraryPreferences.Companion.ENTRY_NON_V
 import tachiyomi.domain.track.anime.interactor.GetAnimeTracks
 import tachiyomi.domain.track.anime.model.AnimeTrack
 import tachiyomi.source.local.entries.anime.isLocal
+import tachiyomi.data.handlers.anime.AnimeDatabaseHandler
+import tachiyomi.domain.entries.anime.model.AnimeCover
 import uy.kohesive.injekt.Injekt
 import uy.kohesive.injekt.api.get
 
@@ -36,11 +38,16 @@ class AnimeStatsScreenModel(
     private val getTracks: GetAnimeTracks = Injekt.get(),
     private val preferences: LibraryPreferences = Injekt.get(),
     private val trackerManager: TrackerManager = Injekt.get(),
+    private val handler: AnimeDatabaseHandler = Injekt.get(),
 ) : StateScreenModel<StatsScreenState>(StatsScreenState.Loading) {
 
     private val loggedInTrackers by lazy { trackerManager.loggedInTrackers().filter { it is AnimeTracker } }
 
     init {
+        calculateStats()
+    }
+
+    private fun calculateStats() {
         screenModelScope.launchIO {
             val animelibAnime = getAnimelibAnime.await()
 
@@ -51,12 +58,15 @@ class AnimeStatsScreenModel(
 
             val meanScore = getTrackMeanScore(scoredAnimeTrackerMap)
 
+            val watchTimes = handler.awaitList { animesQueries.getWatchTimes() }
+            val totalSeenDuration = watchTimes.sumOf { it.watchTime.toLong() }
+
             val overviewStatData = StatsData.AnimeOverview(
                 libraryAnimeCount = distinctLibraryAnime.size,
                 completedAnimeCount = distinctLibraryAnime.count {
                     it.anime.status.toInt() == SAnime.COMPLETED && it.unseenCount == 0L
                 },
-                totalSeenDuration = getWatchTime(distinctLibraryAnime),
+                totalSeenDuration = totalSeenDuration,
             )
 
             val titlesStatData = StatsData.AnimeTitles(
@@ -77,18 +87,21 @@ class AnimeStatsScreenModel(
                 trackerCount = loggedInTrackers.size,
             )
 
-            val allAnimeStats = distinctLibraryAnime
-                .map { libraryAnime ->
-                    // episode.totalSeconds / lastSecondSeen are stored in ms internally
-                    val durationMs = getEpisodesByAnimeId.await(libraryAnime.anime.id)
-                        .sumOf { episode ->
-                            if (episode.seen) episode.totalSeconds else episode.lastSecondSeen
-                        }
+            val allAnimeStats = watchTimes
+                .groupBy { it.title.lowercase() }
+                .map { (_, entries) ->
+                    val maxEntry = entries.maxByOrNull { it.watchTime.toLong() }!!
                     StatsData.EntryTimeStat(
-                        id = libraryAnime.id,
-                        title = libraryAnime.anime.title,
-                        coverData = libraryAnime.anime.asAnimeCover(),
-                        durationMs = durationMs,
+                        id = maxEntry._id,
+                        title = maxEntry.title,
+                        coverData = AnimeCover(
+                            animeId = maxEntry._id,
+                            sourceId = maxEntry.source,
+                            isAnimeFavorite = maxEntry.favorite,
+                            url = maxEntry.thumbnail_url,
+                            lastModified = maxEntry.cover_last_modified,
+                        ),
+                        durationMs = maxEntry.watchTime.toLong(),
                     )
                 }
                 // 10-minute minimum filter
@@ -110,6 +123,13 @@ class AnimeStatsScreenModel(
                     entryTimes = entryTimesData,
                 )
             }
+        }
+    }
+
+    fun deleteStat(animeId: Long) {
+        screenModelScope.launchIO {
+            handler.await { episodesQueries.resetWatchTimeForAnime(animeId) }
+            calculateStats()
         }
     }
 
@@ -149,21 +169,6 @@ class AnimeStatsScreenModel(
 
             anime.id to tracks
         }
-    }
-
-    private suspend fun getWatchTime(libraryAnimeList: List<LibraryAnime>): Long {
-        var watchTime = 0L
-        libraryAnimeList.forEach { libraryAnime ->
-            getEpisodesByAnimeId.await(libraryAnime.anime.id).forEach { episode ->
-                watchTime += if (episode.seen) {
-                    episode.totalSeconds
-                } else {
-                    episode.lastSecondSeen
-                }
-            }
-        }
-
-        return watchTime
     }
 
     private fun getScoredAnimeTrackMap(animeTrackMap: Map<Long, List<AnimeTrack>>): Map<Long, List<AnimeTrack>> {

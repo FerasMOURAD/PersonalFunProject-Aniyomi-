@@ -5,7 +5,8 @@ val strictNsfwKeywords = listOf(
     "luscious", "8muses", "multporn", "fap", "hbrowse", "tsumino", "asmhentai",
     "e-hentai", "exhentai", "simply-hentai", "hentaifox", "hentaihere", "nhentai",
     "hentairead", "hentai2read", "hentaihand", "fakku", "hanime", "hentaihaven",
-    "hentaiplay", "hentaiclub"
+    "hentaiplay", "hentaiclub", "mangadistrict", "3600000 beauty", "4khd", "ahottie",
+    "akuma", "baobua", "buondua"
 )
 
 fun isStrictNsfw(name: String, pkgName: String): Boolean {

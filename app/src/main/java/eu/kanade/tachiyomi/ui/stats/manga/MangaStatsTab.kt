@@ -34,6 +34,7 @@ fun Screen.mangaStatsTab(): TabContent {
                 MangaStatsScreenContent(
                     state = state as StatsScreenState.SuccessManga,
                     paddingValues = contentPadding,
+                    onDelete = { id -> screenModel.deleteStat(id) },
                 )
             }
         },
