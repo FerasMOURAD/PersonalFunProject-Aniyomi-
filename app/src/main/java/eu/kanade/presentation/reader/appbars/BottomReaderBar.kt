@@ -4,7 +4,9 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.Icon
@@ -32,36 +34,52 @@ fun BottomReaderBar(
     onClickCropBorder: () -> Unit,
     onClickSettings: () -> Unit,
 ) {
+    // Adjust this value to change the height / button size (e.g. 32.dp, 36.dp, 40.dp, 48.dp)
+    val buttonSize = 30.dp
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .height(40.dp)
             .background(backgroundColor)
-            .padding(8.dp),
+            .padding(vertical = 2.dp),
         horizontalArrangement = Arrangement.SpaceEvenly,
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        IconButton(onClick = onClickReadingMode) {
+        IconButton(
+            modifier = Modifier.size(buttonSize),
+            onClick = onClickReadingMode,
+        ) {
             Icon(
                 painter = painterResource(readingMode.iconRes),
                 contentDescription = stringResource(MR.strings.viewer),
             )
         }
 
-        IconButton(onClick = onClickOrientation) {
+        IconButton(
+            modifier = Modifier.size(buttonSize),
+            onClick = onClickOrientation,
+        ) {
             Icon(
                 imageVector = orientation.icon,
                 contentDescription = stringResource(MR.strings.rotation_type),
             )
         }
 
-        IconButton(onClick = onClickCropBorder) {
+        IconButton(
+            modifier = Modifier.size(buttonSize),
+            onClick = onClickCropBorder,
+        ) {
             Icon(
                 painter = painterResource(if (cropEnabled) R.drawable.ic_crop_24dp else R.drawable.ic_crop_off_24dp),
                 contentDescription = stringResource(MR.strings.pref_crop_borders),
             )
         }
 
-        IconButton(onClick = onClickSettings) {
+        IconButton(
+            modifier = Modifier.size(buttonSize),
+            onClick = onClickSettings,
+        ) {
             Icon(
                 imageVector = Icons.Outlined.Settings,
                 contentDescription = stringResource(MR.strings.action_settings),

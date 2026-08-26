@@ -170,7 +170,7 @@ fun MangaTrackerSearch(
                 Row(
                     modifier = Modifier
                         .padding(MaterialTheme.padding.small)
-                        .windowInsetsPadding(WindowInsets.navigationBars)
+                        .padding(bottom = 70.dp)
                         .fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(MaterialTheme.padding.small),
                 ) {

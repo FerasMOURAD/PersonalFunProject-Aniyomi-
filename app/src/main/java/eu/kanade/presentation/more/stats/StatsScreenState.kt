@@ -1,11 +1,17 @@
 package eu.kanade.presentation.more.stats
 
 import androidx.compose.runtime.Immutable
+import eu.kanade.presentation.more.stats.data.InsightsData
 import eu.kanade.presentation.more.stats.data.StatsData
 
 sealed interface StatsScreenState {
     @Immutable
     data object Loading : StatsScreenState
+
+    @Immutable
+    data class SuccessInsights(
+        val data: InsightsData,
+    ) : StatsScreenState
 
     @Immutable
     data class SuccessManga(

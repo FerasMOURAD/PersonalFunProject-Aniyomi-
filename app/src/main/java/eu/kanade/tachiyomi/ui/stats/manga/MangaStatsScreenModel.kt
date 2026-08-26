@@ -108,7 +108,6 @@ class MangaStatsScreenModel(
                 // 10-minute minimum filter
                 .filter { it.durationMs >= 10L * 60 * 1000 }
                 .sortedByDescending { it.durationMs }
-                .take(25)
 
             val entryTimesData = StatsData.MangaEntryTimeList(
                 entries = allMangaStats,

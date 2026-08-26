@@ -60,9 +60,9 @@ fun EntryTimeBarItem(
     modifier: Modifier = Modifier,
 ) {
     val fraction = if (maxDuration > 0) {
-        (entry.durationMs.toFloat() / maxDuration.toFloat()).coerceIn(0.02f, 1f)
+        (entry.durationMs.toFloat() / maxDuration.toFloat()).coerceIn(0f, 1f)
     } else {
-        0.02f
+        0f
     }
 
     val context = LocalContext.current
@@ -85,8 +85,9 @@ fun EntryTimeBarItem(
             ),
     ) {
         val totalWidth = maxWidth
-        // Bar ends here; clamp so the info column always has MIN_INFO_WIDTH
-        val barEndX = (totalWidth * fraction).coerceAtMost(totalWidth - MIN_INFO_WIDTH)
+        val minBarWidth = COVER_SIZE
+        val maxBarWidth = (totalWidth - MIN_INFO_WIDTH).coerceAtLeast(minBarWidth)
+        val barEndX = minBarWidth + (maxBarWidth - minBarWidth) * fraction
 
         // ── Colored bar background ────────────────────────────────────────
         Box(
@@ -118,7 +119,8 @@ fun EntryTimeBarItem(
         // ── Info column — starts RIGHT after the bar end ──────────────────
         Box(
             modifier = Modifier
-                .padding(start = barEndX + 8.dp)
+                .padding(start = barEndX + 8.dp, end = 8.dp)
+                .fillMaxWidth()
                 .fillMaxHeight(),
             contentAlignment = Alignment.CenterStart,
         ) {

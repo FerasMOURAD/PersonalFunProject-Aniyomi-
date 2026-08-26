@@ -14,6 +14,7 @@ import eu.kanade.presentation.util.Tab
 import eu.kanade.tachiyomi.R
 import eu.kanade.tachiyomi.ui.main.MainActivity
 import eu.kanade.tachiyomi.ui.stats.anime.animeStatsTab
+import eu.kanade.tachiyomi.ui.stats.insights.insightsStatsTab
 import eu.kanade.tachiyomi.ui.stats.manga.mangaStatsTab
 import kotlinx.collections.immutable.persistentListOf
 import tachiyomi.i18n.MR
@@ -38,6 +39,7 @@ data object StatsTab : Tab {
         val context = LocalContext.current
 
         val tabs = persistentListOf(
+            insightsStatsTab(),
             animeStatsTab(),
             mangaStatsTab(),
         )
