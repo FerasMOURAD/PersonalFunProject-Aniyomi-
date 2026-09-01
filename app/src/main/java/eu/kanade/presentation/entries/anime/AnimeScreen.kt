@@ -90,6 +90,7 @@ import kotlinx.coroutines.delay
 import tachiyomi.domain.entries.anime.model.Anime
 import tachiyomi.domain.items.episode.model.Episode
 import tachiyomi.domain.items.episode.service.missingEntriesCount
+import tachiyomi.domain.library.model.LibraryDisplayMode
 import tachiyomi.domain.library.service.LibraryPreferences
 import tachiyomi.domain.source.anime.model.StubAnimeSource
 import tachiyomi.i18n.MR
@@ -160,6 +161,11 @@ fun AnimeScreen(
     // Season clicked
     onSeasonClicked: (SeasonAnime) -> Unit,
     onContinueWatchingClicked: ((SeasonAnime) -> Unit)?,
+
+    // Related anime clicked
+    onRelatedAnimeClicked: (Anime) -> Unit,
+    onRelatedAnimeLongClicked: (Anime) -> Unit,
+    relatedAnimeDisplayMode: LibraryDisplayMode,
 ) {
     val context = LocalContext.current
     val onCopyTagToClipboard: (tag: String) -> Unit = {
@@ -214,6 +220,9 @@ fun AnimeScreen(
             onSettingsClicked = onSettingsClicked,
             onSeasonClicked = onSeasonClicked,
             onClickContinueWatching = onContinueWatchingClicked,
+            onRelatedAnimeClicked = onRelatedAnimeClicked,
+            onRelatedAnimeLongClicked = onRelatedAnimeLongClicked,
+            relatedAnimeDisplayMode = relatedAnimeDisplayMode,
         )
     } else {
         AnimeScreenLargeImpl(
@@ -256,6 +265,9 @@ fun AnimeScreen(
             onSettingsClicked = onSettingsClicked,
             onSeasonClicked = onSeasonClicked,
             onClickContinueWatching = onContinueWatchingClicked,
+            onRelatedAnimeClicked = onRelatedAnimeClicked,
+            onRelatedAnimeLongClicked = onRelatedAnimeLongClicked,
+            relatedAnimeDisplayMode = relatedAnimeDisplayMode,
         )
     }
 }
@@ -317,6 +329,11 @@ private fun AnimeScreenSmallImpl(
     // Season clicked
     onSeasonClicked: (SeasonAnime) -> Unit,
     onClickContinueWatching: ((SeasonAnime) -> Unit)?,
+
+    // Related anime clicked
+    onRelatedAnimeClicked: (Anime) -> Unit,
+    onRelatedAnimeLongClicked: (Anime) -> Unit,
+    relatedAnimeDisplayMode: LibraryDisplayMode,
 ) {
     val navigator = LocalNavigator.currentOrThrow
     val density = LocalDensity.current
@@ -512,6 +529,10 @@ private fun AnimeScreenSmallImpl(
                             tagsProvider = { state.anime.genre },
                             onTagSearch = onTagSearch,
                             onCopyTagToClipboard = onCopyTagToClipboard,
+                            relations = state.relatedAnime,
+                            onRelatedClick = onRelatedAnimeClicked,
+                            onRelatedLongClick = onRelatedAnimeLongClicked,
+                            relatedDisplayMode = relatedAnimeDisplayMode,
                             modifier = Modifier.ignorePadding(offsetGridPaddingPx),
                         )
                     }
@@ -676,6 +697,11 @@ fun AnimeScreenLargeImpl(
     // Season clicked
     onSeasonClicked: (SeasonAnime) -> Unit,
     onClickContinueWatching: ((SeasonAnime) -> Unit)?,
+
+    // Related anime clicked
+    onRelatedAnimeClicked: (Anime) -> Unit,
+    onRelatedAnimeLongClicked: (Anime) -> Unit,
+    relatedAnimeDisplayMode: LibraryDisplayMode,
 ) {
     val navigator = LocalNavigator.currentOrThrow
     val layoutDirection = LocalLayoutDirection.current
@@ -840,6 +866,10 @@ fun AnimeScreenLargeImpl(
                                 tagsProvider = { state.anime.genre },
                                 onTagSearch = onTagSearch,
                                 onCopyTagToClipboard = onCopyTagToClipboard,
+                                relations = state.relatedAnime,
+                                onRelatedClick = onRelatedAnimeClicked,
+                                onRelatedLongClick = onRelatedAnimeLongClicked,
+                                relatedDisplayMode = relatedAnimeDisplayMode,
                             )
                             eu.kanade.presentation.entries.components.RecommendationsCarousel(
                                 recommendations = state.recommendations,
