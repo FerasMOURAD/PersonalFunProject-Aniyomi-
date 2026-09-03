@@ -181,6 +181,7 @@ class PlayerSettingsMainScreen(private val mainSettings: Boolean) : Screen() {
         val screen: VoyagerScreen,
     )
 
+    @Transient
     private val items = listOf(
         Item(
             titleRes = AYMR.strings.pref_player_internal,

@@ -10,6 +10,7 @@ import eu.kanade.tachiyomi.animesource.online.ParsedAnimeHttpSource
 import eu.kanade.tachiyomi.data.download.anime.AnimeDownloadManager
 import eu.kanade.tachiyomi.ui.player.controls.components.sheets.HosterState
 import kotlinx.coroutines.CancellationException
+import tachiyomi.core.common.util.lang.withIOContext
 import tachiyomi.domain.entries.anime.model.Anime
 import tachiyomi.domain.items.episode.model.Episode
 import tachiyomi.source.local.entries.anime.LocalAnimeSource
@@ -84,14 +85,15 @@ class EpisodeLoader {
          * @param source the online source of the episode.
          */
         private suspend fun getHostersOnHttp(episode: Episode, source: AnimeHttpSource): List<Hoster> {
-            // TODO(1.6): Remove else block when dropping support for ext lib <1.6
-            return if (checkHasHosters(source)) {
-                source.getHosterList(episode.toSEpisode())
-                    .let { source.run { it.sortHosters() } }
-            } else {
-                source.getVideoList(episode.toSEpisode())
-                    .let { source.run { it.sortVideos() } }
-                    .toHosterList()
+            return withIOContext {
+                if (checkHasHosters(source)) {
+                    source.getHosterList(episode.toSEpisode())
+                        .let { source.run { it.sortHosters() } }
+                } else {
+                    source.getVideoList(episode.toSEpisode())
+                        .let { source.run { it.sortVideos() } }
+                        .toHosterList()
+                }
             }
         }
 
@@ -172,8 +174,10 @@ class EpisodeLoader {
          * @param hoster the hoster.
          */
         private suspend fun getVideosOnHttp(source: AnimeHttpSource, hoster: Hoster): List<Video> {
-            return source.getVideoList(hoster)
-                .parseVideoUrls(source)
+            return withIOContext {
+                source.getVideoList(hoster)
+                    .parseVideoUrls(source)
+            }
         }
 
         // TODO(1.6): Remove after ext lib bump

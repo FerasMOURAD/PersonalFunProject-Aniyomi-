@@ -54,7 +54,7 @@ internal object MangaExtensionLoader {
     private const val METADATA_SOURCE_CLASS = "tachiyomi.extension.class"
     private const val METADATA_SOURCE_FACTORY = "tachiyomi.extension.factory"
     private const val METADATA_NSFW = "tachiyomi.extension.nsfw"
-    val SUPPORTED_LIB_VERSIONS = listOf(1.4, 1.6)
+    val SUPPORTED_LIB_VERSIONS = listOf(1.4, 1.5, 1.6)
 
     @Suppress("DEPRECATION")
     private val PACKAGE_FLAGS = PackageManager.GET_CONFIGURATIONS or
