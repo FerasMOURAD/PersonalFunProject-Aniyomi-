@@ -118,6 +118,12 @@ class AppModule(val app: Application) : InjektModule {
                     setPragma(db, "journal_mode = WAL")
                     setPragma(db, "synchronous = NORMAL")
                     try {
+                        db.execSQL("ALTER TABLE animes ADD COLUMN memo BLOB NOT NULL DEFAULT x'7b7d'")
+                    } catch (_: Throwable) {}
+                    try {
+                        db.execSQL("ALTER TABLE episodes ADD COLUMN memo BLOB NOT NULL DEFAULT x'7b7d'")
+                    } catch (_: Throwable) {}
+                    try {
                         db.execSQL("DROP VIEW IF EXISTS animelibView")
                         db.execSQL("""
                             CREATE VIEW animelibView AS
@@ -164,17 +170,42 @@ class AppModule(val app: Application) : InjektModule {
                             CREATE VIEW animeseasonsView AS
                             SELECT
                                 M.*,
-                                coalesce(ES.total, 0) AS totalCount,
-                                coalesce(ES.seenCount, 0) AS seenCount,
-                                coalesce(ES.latestUpload, 0) AS latestUpload,
-                                coalesce(ES.fetchedAt, 0) AS fetchedAt,
-                                coalesce(AHS.lastSeen, 0) AS lastSeen,
-                                coalesce(ES.bookmarkCount, 0) AS bookmarkCount,
-                                coalesce(ES.fillermarkCount, 0) AS fillermarkCount
-                            FROM animes M
-                            LEFT JOIN episodestatsView AS ES ON M._id = ES.anime_id
-                            LEFT JOIN animehistorystatsView AS AHS ON M._id = AHS.anime_id
-                            WHERE M.fetch_type = 0;
+                                CASE M.fetch_type
+                                    WHEN 1 THEN coalesce(ES.total, 0)
+                                    WHEN 0 THEN coalesce(ASS.child_count, 0)
+                                END AS totalCount,
+                                CASE M.fetch_type
+                                    WHEN 1 THEN coalesce(ES.seenCount, 0)
+                                    WHEN 0 THEN coalesce(ASS.fully_seen_seasons, 0)
+                                END AS seenCount,
+                                CASE M.fetch_type
+                                    WHEN 1 THEN coalesce(ES.latestUpload, 0)
+                                    WHEN 0 THEN coalesce(ASS.max_latest_upload, 0)
+                                END AS latestUpload,
+                                CASE M.fetch_type
+                                    WHEN 1 THEN coalesce(ES.fetchedAt, 0)
+                                    WHEN 0 THEN coalesce(ASS.max_fetched_at, 0)
+                                END AS episodeFetchedAt,
+                                CASE M.fetch_type
+                                    WHEN 1 THEN coalesce(AHS.lastSeen, 0)
+                                    WHEN 0 THEN coalesce(ASS.max_last_seen, 0)
+                                END AS lastSeen,
+                                CASE M.fetch_type
+                                    WHEN 1 THEN coalesce(ES.bookmarkCount, 0)
+                                    WHEN 0 THEN coalesce(ASS.total_bookmarks, 0)
+                                END AS bookmarkCount,
+                                CASE M.fetch_type
+                                    WHEN 1 THEN coalesce(ES.fillermarkCount, 0)
+                                    WHEN 0 THEN coalesce(ASS.total_fillermarks, 0)
+                                END AS fillermarkCount
+                            FROM animes AS M
+                            LEFT JOIN episodestatsView AS ES
+                            ON M._id = ES.anime_id
+                            LEFT JOIN animehistorystatsView AS AHS
+                            ON M._id = AHS.anime_id
+                            LEFT JOIN animeseasonstatsView AS ASS
+                            ON M._id = ASS.parent_id
+                            WHERE M.parent_id IS NOT NULL;
                         """.trimIndent())
                     } catch (e: Throwable) {
                         // Ignore if tables not yet created
