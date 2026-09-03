@@ -346,8 +346,12 @@ class MangaLibraryUpdateJob(private val context: Context, workerParams: WorkerPa
 
         // Update manga metadata if needed
         if (libraryPreferences.autoUpdateMetadata().get()) {
-            val networkManga = source.getMangaDetails(manga.toSManga())
-            updateManga.awaitUpdateFromSource(manga, networkManga, manualFetch = false, coverCache)
+            try {
+                val networkManga = source.getMangaDetails(manga.toSManga())
+                updateManga.awaitUpdateFromSource(manga, networkManga, manualFetch = false, coverCache)
+            } catch (e: Throwable) {
+                logcat(LogPriority.WARN, e) { "Failed to update metadata for ${manga.title}" }
+            }
         }
 
         val chapters = source.getChapterList(manga.toSManga())
