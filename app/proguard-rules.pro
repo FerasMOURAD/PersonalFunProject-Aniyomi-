@@ -81,3 +81,12 @@
 
 # XmlUtil
 -keep public enum nl.adaptivity.xmlutil.EventType { *; }
+
+# Zstandard (zstd-kmp) JNI reflection
+-keep class com.squareup.zstd.** { *; }
+-keepclassmembers class com.squareup.zstd.** { *; }
+-dontwarn com.squareup.zstd.**
+
+# OkHttp Zstandard decompression
+-keep class okhttp3.zstd.** { *; }
+-dontwarn okhttp3.zstd.**
