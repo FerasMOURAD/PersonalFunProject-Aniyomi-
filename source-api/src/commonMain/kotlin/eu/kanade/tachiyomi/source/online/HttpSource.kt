@@ -212,7 +212,11 @@ abstract class HttpSource : CatalogueSource {
      */
     @Suppress("DEPRECATION")
     override suspend fun getMangaDetails(manga: SManga): SManga {
-        return fetchMangaDetails(manga).awaitSingle()
+        return try {
+            getMangaUpdate(manga, emptyList(), fetchDetails = true, fetchChapters = false).manga
+        } catch (_: UnsupportedOperationException) {
+            fetchMangaDetails(manga).awaitSingle()
+        }
     }
 
     @Deprecated("Use the non-RxJava API instead", replaceWith = ReplaceWith("getMangaDetails"))
@@ -231,7 +235,11 @@ abstract class HttpSource : CatalogueSource {
      * @param manga the manga to be updated.
      */
     open fun mangaDetailsRequest(manga: SManga): Request {
-        return GET(baseUrl + manga.url, headers)
+        return try {
+            GET(getMangaUrl(manga), headers)
+        } catch (_: StackOverflowError) {
+            GET(baseUrl + manga.url, headers)
+        }
     }
 
     /**
@@ -250,7 +258,11 @@ abstract class HttpSource : CatalogueSource {
      */
     @Suppress("DEPRECATION")
     override suspend fun getChapterList(manga: SManga): List<SChapter> {
-        return fetchChapterList(manga).awaitSingle()
+        return try {
+            getMangaUpdate(manga, emptyList(), fetchDetails = false, fetchChapters = true).chapters
+        } catch (_: UnsupportedOperationException) {
+            fetchChapterList(manga).awaitSingle()
+        }
     }
 
     @Deprecated("Use the non-RxJava API instead", replaceWith = ReplaceWith("getChapterList"))
@@ -269,7 +281,11 @@ abstract class HttpSource : CatalogueSource {
      * @param manga the manga to look for chapters.
      */
     protected open fun chapterListRequest(manga: SManga): Request {
-        return GET(baseUrl + manga.url, headers)
+        return try {
+            GET(getMangaUrl(manga), headers)
+        } catch (_: StackOverflowError) {
+            GET(baseUrl + manga.url, headers)
+        }
     }
 
     /**
@@ -431,7 +447,7 @@ abstract class HttpSource : CatalogueSource {
      * @return url of the manga
      */
     open fun getMangaUrl(manga: SManga): String {
-        return mangaDetailsRequest(manga).url.toString()
+        return baseUrl + manga.url
     }
 
     /**
