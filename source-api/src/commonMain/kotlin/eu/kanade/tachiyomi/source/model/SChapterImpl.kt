@@ -15,5 +15,19 @@ class SChapterImpl : SChapter {
     override var chapter_number: Float = -1f
 
     override var scanlator: String? = null
-    override var memo: JsonObject = JsonObject(emptyMap())
+
+    private var _memo: JsonObject? = null
+
+    override var memo: JsonObject
+        get() {
+            val m = _memo
+            if (m != null && m.isNotEmpty()) return m
+            return if (::url.isInitialized) ChapterMemoManager.getMemo(url) else JsonObject(emptyMap())
+        }
+        set(value) {
+            _memo = value
+            if (value.isNotEmpty() && ::url.isInitialized) {
+                ChapterMemoManager.putMemo(url, value)
+            }
+        }
 }

@@ -8,6 +8,7 @@ import eu.kanade.domain.items.chapter.model.toSChapter
 import eu.kanade.tachiyomi.data.download.manga.MangaDownloadManager
 import eu.kanade.tachiyomi.data.download.manga.MangaDownloadProvider
 import eu.kanade.tachiyomi.source.MangaSource
+import eu.kanade.tachiyomi.source.model.ChapterMemoManager
 import eu.kanade.tachiyomi.source.model.SChapter
 import eu.kanade.tachiyomi.source.online.HttpSource
 import tachiyomi.data.items.chapter.ChapterSanitizer
@@ -55,6 +56,12 @@ class SyncChaptersWithSource(
     ): List<Chapter> {
         if (rawSourceChapters.isEmpty() && !source.isLocal()) {
             throw NoChaptersException()
+        }
+
+        rawSourceChapters.forEach { sChapter ->
+            if (sChapter.memo.isNotEmpty()) {
+                ChapterMemoManager.putMemo(sChapter.url, sChapter.memo)
+            }
         }
 
         val now = ZonedDateTime.now()

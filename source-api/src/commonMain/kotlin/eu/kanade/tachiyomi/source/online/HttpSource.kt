@@ -213,9 +213,9 @@ abstract class HttpSource : CatalogueSource {
     @Suppress("DEPRECATION")
     override suspend fun getMangaDetails(manga: SManga): SManga {
         return try {
-            getMangaUpdate(manga, emptyList(), fetchDetails = true, fetchChapters = false).manga
-        } catch (_: UnsupportedOperationException) {
             fetchMangaDetails(manga).awaitSingle()
+        } catch (_: UnsupportedOperationException) {
+            getMangaUpdate(manga, emptyList(), fetchDetails = true, fetchChapters = false).manga
         }
     }
 
@@ -235,11 +235,7 @@ abstract class HttpSource : CatalogueSource {
      * @param manga the manga to be updated.
      */
     open fun mangaDetailsRequest(manga: SManga): Request {
-        return try {
-            GET(getMangaUrl(manga), headers)
-        } catch (_: StackOverflowError) {
-            GET(baseUrl + manga.url, headers)
-        }
+        return GET(baseUrl + manga.url, headers)
     }
 
     /**
@@ -259,9 +255,9 @@ abstract class HttpSource : CatalogueSource {
     @Suppress("DEPRECATION")
     override suspend fun getChapterList(manga: SManga): List<SChapter> {
         return try {
-            getMangaUpdate(manga, emptyList(), fetchDetails = false, fetchChapters = true).chapters
-        } catch (_: UnsupportedOperationException) {
             fetchChapterList(manga).awaitSingle()
+        } catch (_: UnsupportedOperationException) {
+            getMangaUpdate(manga, emptyList(), fetchDetails = false, fetchChapters = true).chapters
         }
     }
 
@@ -281,11 +277,7 @@ abstract class HttpSource : CatalogueSource {
      * @param manga the manga to look for chapters.
      */
     protected open fun chapterListRequest(manga: SManga): Request {
-        return try {
-            GET(getMangaUrl(manga), headers)
-        } catch (_: StackOverflowError) {
-            GET(baseUrl + manga.url, headers)
-        }
+        return GET(baseUrl + manga.url, headers)
     }
 
     /**

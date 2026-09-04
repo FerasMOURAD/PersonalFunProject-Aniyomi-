@@ -64,8 +64,8 @@ interface CatalogueSource : MangaSource {
         fetchDetails: Boolean,
         fetchChapters: Boolean,
     ): SMangaUpdate = supervisorScope {
-        val asyncManga = if (fetchDetails) async { getMangaDetails(manga) } else null
-        val asyncChapters = if (fetchChapters) async { getChapterList(manga) } else null
+        val asyncManga = if (fetchDetails) async { fetchMangaDetails(manga).awaitSingle() } else null
+        val asyncChapters = if (fetchChapters) async { fetchChapterList(manga).awaitSingle() } else null
         SMangaUpdate(asyncManga?.await() ?: manga, asyncChapters?.await() ?: chapters)
     }
 

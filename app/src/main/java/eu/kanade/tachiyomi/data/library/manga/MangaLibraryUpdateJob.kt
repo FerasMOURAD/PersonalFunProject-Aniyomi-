@@ -352,6 +352,20 @@ class MangaLibraryUpdateJob(private val context: Context, workerParams: WorkerPa
             fetchChapters = true,
         )
 
+        val mangaSlug = update.manga.memo["slug"]?.let {
+            (it as? kotlinx.serialization.json.JsonPrimitive)?.content ?: it.toString().trim('"')
+        }
+        if (!mangaSlug.isNullOrBlank()) {
+            val baseSlug = eu.kanade.tachiyomi.source.model.ChapterMemoManager.extractBaseSlug(manga.url)
+                ?: manga.url.trim('/').substringAfterLast('/')
+            eu.kanade.tachiyomi.source.model.ChapterMemoManager.putMangaSlug(baseSlug, mangaSlug)
+        }
+        update.chapters.forEach { sChapter ->
+            if (sChapter.memo.isNotEmpty()) {
+                eu.kanade.tachiyomi.source.model.ChapterMemoManager.putMemo(sChapter.url, sChapter.memo)
+            }
+        }
+
         // Update manga metadata if needed
         if (autoUpdateMetadata) {
             try {

@@ -2,6 +2,7 @@
 
 package eu.kanade.tachiyomi.data.database.models.manga
 
+import eu.kanade.tachiyomi.source.model.ChapterMemoManager
 import kotlinx.serialization.json.JsonObject
 
 class ChapterImpl : Chapter {
@@ -15,7 +16,21 @@ class ChapterImpl : Chapter {
     override lateinit var name: String
 
     override var scanlator: String? = null
-    override var memo: JsonObject = JsonObject(emptyMap())
+
+    private var _memo: JsonObject? = null
+
+    override var memo: JsonObject
+        get() {
+            val m = _memo
+            if (m != null && m.isNotEmpty()) return m
+            return if (::url.isInitialized) ChapterMemoManager.getMemo(url) else JsonObject(emptyMap())
+        }
+        set(value) {
+            _memo = value
+            if (value.isNotEmpty() && ::url.isInitialized) {
+                ChapterMemoManager.putMemo(url, value)
+            }
+        }
 
     override var read: Boolean = false
 

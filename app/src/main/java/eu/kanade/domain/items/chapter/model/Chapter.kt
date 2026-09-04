@@ -1,6 +1,7 @@
 package eu.kanade.domain.items.chapter.model
 
 import eu.kanade.tachiyomi.data.database.models.manga.ChapterImpl
+import eu.kanade.tachiyomi.source.model.ChapterMemoManager
 import eu.kanade.tachiyomi.source.model.SChapter
 import tachiyomi.domain.items.chapter.model.Chapter
 import eu.kanade.tachiyomi.data.database.models.manga.Chapter as DbChapter
@@ -13,10 +14,14 @@ fun Chapter.toSChapter(): SChapter {
         it.date_upload = dateUpload
         it.chapter_number = chapterNumber.toFloat()
         it.scanlator = scanlator
+        it.memo = ChapterMemoManager.getMemo(url)
     }
 }
 
 fun Chapter.copyFromSChapter(sChapter: SChapter): Chapter {
+    if (sChapter.memo.isNotEmpty()) {
+        ChapterMemoManager.putMemo(sChapter.url, sChapter.memo)
+    }
     return this.copy(
         name = sChapter.name,
         url = sChapter.url,
@@ -39,4 +44,5 @@ fun Chapter.toDbChapter(): DbChapter = ChapterImpl().also {
     it.date_upload = dateUpload
     it.chapter_number = chapterNumber.toFloat()
     it.source_order = sourceOrder.toInt()
+    it.memo = ChapterMemoManager.getMemo(url)
 }

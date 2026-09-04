@@ -55,6 +55,9 @@ import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import eu.kanade.tachiyomi.source.model.ChapterMemoManager
+import kotlinx.serialization.json.JsonPrimitive
 import logcat.LogPriority
 import mihon.domain.items.chapter.interactor.FilterChaptersForDownload
 import tachiyomi.core.common.i18n.stringResource
@@ -124,6 +127,7 @@ class MangaScreenModel(
     val snackbarHostState: SnackbarHostState = SnackbarHostState(),
 ) : StateScreenModel<MangaScreenModel.State>(State.Loading) {
 
+    private val fetchMutex = Mutex()
     private val aniListRecommendations = eu.kanade.tachiyomi.network.services.AniListRecommendations()
 
 
@@ -288,6 +292,9 @@ class MangaScreenModel(
         fetchChapters: Boolean = true,
     ) {
         val state = successState ?: return
+        if (!fetchMutex.tryLock()) {
+            return
+        }
         try {
             withIOContext {
                 val update = state.source.getMangaUpdate(
@@ -296,6 +303,20 @@ class MangaScreenModel(
                     fetchDetails = fetchDetails,
                     fetchChapters = fetchChapters,
                 )
+
+                val mangaSlug = update.manga.memo["slug"]?.let {
+                    (it as? JsonPrimitive)?.content ?: it.toString().trim('"')
+                }
+                if (!mangaSlug.isNullOrBlank()) {
+                    val baseSlug = ChapterMemoManager.extractBaseSlug(state.manga.url)
+                        ?: state.manga.url.trim('/').substringAfterLast('/')
+                    ChapterMemoManager.putMangaSlug(baseSlug, mangaSlug)
+                }
+                update.chapters.forEach { sChapter ->
+                    if (sChapter.memo.isNotEmpty()) {
+                        ChapterMemoManager.putMemo(sChapter.url, sChapter.memo)
+                    }
+                }
 
                 if (fetchDetails) {
                     updateManga.awaitUpdateFromSource(state.manga, update.manga, manualFetch)
@@ -314,6 +335,8 @@ class MangaScreenModel(
                     }
                 }
             }
+        } catch (_: kotlinx.coroutines.CancellationException) {
+            // Cancelled, ignore
         } catch (e: Throwable) {
             // Ignore early hints "errors" that aren't handled by OkHttp
             if (e is HttpException && e.code == 103) return
@@ -328,8 +351,11 @@ class MangaScreenModel(
             screenModelScope.launch {
                 snackbarHostState.showSnackbar(message = message)
             }
-            val newManga = mangaRepository.getMangaById(mangaId)
-            updateSuccessState { it.copy(manga = newManga, isRefreshingData = false) }
+            val newManga = runCatching { mangaRepository.getMangaById(mangaId) }.getOrNull()
+            updateSuccessState { it.copy(manga = newManga ?: it.manga, isRefreshingData = false) }
+        } finally {
+            fetchMutex.unlock()
+            updateSuccessState { it.copy(isRefreshingData = false) }
         }
     }
 
