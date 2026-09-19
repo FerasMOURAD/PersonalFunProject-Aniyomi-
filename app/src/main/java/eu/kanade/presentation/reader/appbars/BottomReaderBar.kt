@@ -12,6 +12,7 @@ import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -34,13 +35,15 @@ fun BottomReaderBar(
     onClickCropBorder: () -> Unit,
     onClickSettings: () -> Unit,
 ) {
-    // Adjust this value to change the height / button size (e.g. 32.dp, 36.dp, 40.dp, 48.dp)
-    val buttonSize = 30.dp
+    val configuration = LocalConfiguration.current
+    val screenHeight = configuration.screenHeightDp.dp
+    val buttonSize = (screenHeight * 0.045f).coerceIn(28.dp, 38.dp)
+    val barHeight = (screenHeight * 0.06f).coerceIn(38.dp, 48.dp)
 
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .height(40.dp)
+            .height(barHeight)
             .background(backgroundColor)
             .padding(vertical = 2.dp),
         horizontalArrangement = Arrangement.SpaceEvenly,

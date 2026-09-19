@@ -59,7 +59,7 @@ class AnimeStatsScreenModel(
             val meanScore = getTrackMeanScore(scoredAnimeTrackerMap)
 
             val watchTimes = handler.awaitList { animesQueries.getWatchTimes() }
-            val totalSeenDuration = watchTimes.sumOf { it.watchTime.toLong() }
+            val totalSeenDuration = watchTimes.sumOf { it.watchTime }
 
             val overviewStatData = StatsData.AnimeOverview(
                 libraryAnimeCount = distinctLibraryAnime.size,
@@ -90,26 +90,26 @@ class AnimeStatsScreenModel(
             val allAnimeStats = watchTimes
                 .groupBy { it.title.lowercase() }
                 .map { (_, entries) ->
-                    val maxEntry = entries.maxByOrNull { it.watchTime.toLong() }!!
+                    val primaryEntry = entries.firstOrNull { it.favorite }
+                        ?: entries.maxByOrNull { it.watchTime }!!
                     StatsData.EntryTimeStat(
-                        id = maxEntry._id,
-                        title = maxEntry.title,
+                        id = primaryEntry._id,
+                        title = primaryEntry.title,
                         coverData = AnimeCover(
-                            animeId = maxEntry._id,
-                            sourceId = maxEntry.source,
-                            isAnimeFavorite = maxEntry.favorite,
-                            url = maxEntry.thumbnail_url,
-                            lastModified = maxEntry.cover_last_modified,
+                            animeId = primaryEntry._id,
+                            sourceId = primaryEntry.source,
+                            isAnimeFavorite = primaryEntry.favorite,
+                            url = primaryEntry.thumbnail_url,
+                            lastModified = primaryEntry.cover_last_modified,
                         ),
-                        durationMs = maxEntry.watchTime.toLong(),
+                        durationMs = entries.sumOf { it.watchTime },
                     )
                 }
-                // 10-minute minimum filter
-                .filter { it.durationMs >= 10L * 60 * 1000 }
-                .sortedByDescending { it.durationMs }
 
             val entryTimesData = StatsData.AnimeEntryTimeList(
-                entries = allAnimeStats,
+                entries = allAnimeStats
+                    .filter { it.durationMs >= 10L * 60 * 1000 }
+                    .sortedByDescending { it.durationMs },
                 totalDurationMs = allAnimeStats.sumOf { it.durationMs },
             )
 
@@ -127,7 +127,18 @@ class AnimeStatsScreenModel(
 
     fun deleteStat(animeId: Long) {
         screenModelScope.launchIO {
-            handler.await { episodesQueries.resetWatchTimeForAnime(animeId) }
+            val anime = handler.awaitOneOrNull { animesQueries.getAnimeById(animeId) }
+            if (anime != null) {
+                val duplicateAnimes = handler.awaitList { animesQueries.getWatchTimes() }
+                    .filter { it.title.equals(anime.title, ignoreCase = true) }
+                handler.await(inTransaction = true) {
+                    duplicateAnimes.forEach {
+                        episodesQueries.resetWatchTimeForAnime(it._id)
+                    }
+                }
+            } else {
+                handler.await { episodesQueries.resetWatchTimeForAnime(animeId) }
+            }
             calculateStats()
         }
     }

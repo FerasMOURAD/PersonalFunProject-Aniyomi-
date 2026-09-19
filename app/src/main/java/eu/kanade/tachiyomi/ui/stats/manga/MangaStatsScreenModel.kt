@@ -90,27 +90,27 @@ class MangaStatsScreenModel(
             val allMangaStats = readMangas
                 .groupBy { it.title.lowercase() }
                 .map { (_, entries) ->
-                    val maxEntry = entries.maxByOrNull { it.total_read_duration }!!
+                    val primaryEntry = entries.firstOrNull { it.favorite }
+                        ?: entries.maxByOrNull { it.total_read_duration }!!
                     StatsData.EntryTimeStat(
-                        id = maxEntry._id,
-                        title = maxEntry.title,
+                        id = primaryEntry._id,
+                        title = primaryEntry.title,
                         coverData = MangaCover(
-                            mangaId = maxEntry._id,
-                            sourceId = maxEntry.source,
-                            isMangaFavorite = maxEntry.favorite,
-                            url = maxEntry.thumbnail_url,
-                            lastModified = maxEntry.cover_last_modified,
+                            mangaId = primaryEntry._id,
+                            sourceId = primaryEntry.source,
+                            isMangaFavorite = primaryEntry.favorite,
+                            url = primaryEntry.thumbnail_url,
+                            lastModified = primaryEntry.cover_last_modified,
                         ),
                         // Use the persistent counter — survives history deletion
-                        durationMs = maxEntry.total_read_duration,
+                        durationMs = entries.sumOf { it.total_read_duration },
                     )
                 }
-                // 10-minute minimum filter
-                .filter { it.durationMs >= 10L * 60 * 1000 }
-                .sortedByDescending { it.durationMs }
 
             val entryTimesData = StatsData.MangaEntryTimeList(
-                entries = allMangaStats,
+                entries = allMangaStats
+                    .filter { it.durationMs >= 10L * 60 * 1000 }
+                    .sortedByDescending { it.durationMs },
                 totalDurationMs = allMangaStats.sumOf { it.durationMs },
             )
 
@@ -128,7 +128,18 @@ class MangaStatsScreenModel(
 
     fun deleteStat(mangaId: Long) {
         screenModelScope.launchIO {
-            handler.await { mangasQueries.resetTotalReadDuration(mangaId) }
+            val manga = handler.awaitOneOrNull { mangasQueries.getMangaById(mangaId) }
+            if (manga != null) {
+                val duplicateMangas = handler.awaitList { mangasQueries.getReadManga() }
+                    .filter { it.title.equals(manga.title, ignoreCase = true) }
+                handler.await(inTransaction = true) {
+                    duplicateMangas.forEach {
+                        mangasQueries.resetTotalReadDuration(it._id)
+                    }
+                }
+            } else {
+                handler.await { mangasQueries.resetTotalReadDuration(mangaId) }
+            }
             calculateStats()
         }
     }

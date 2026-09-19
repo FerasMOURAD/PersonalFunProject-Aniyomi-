@@ -33,7 +33,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.tooling.preview.PreviewParameter
@@ -67,14 +69,19 @@ fun AnimeTrackInfoDialogHome(
     onCopyLink: (AnimeTrackItem) -> Unit,
     onTogglePrivate: (AnimeTrackItem) -> Unit,
 ) {
+    val screenHeight = LocalConfiguration.current.screenHeightDp.dp
+
     Column(
         modifier = Modifier
             .animateContentSize()
             .fillMaxWidth()
-            .heightIn(min = 250.dp)
+            .heightIn(
+                min = (screenHeight * 0.35f).coerceAtLeast(220.dp),
+                max = screenHeight * 0.85f,
+            )
             .verticalScroll(rememberScrollState())
-            .padding(horizontal = 16.dp, vertical = 40.dp)
-            .padding(bottom = 32.dp),
+            .padding(horizontal = 16.dp, vertical = 20.dp)
+            .navigationBarsPadding(),
         verticalArrangement = Arrangement.spacedBy(24.dp),
     ) {
         trackItems.forEach { item ->

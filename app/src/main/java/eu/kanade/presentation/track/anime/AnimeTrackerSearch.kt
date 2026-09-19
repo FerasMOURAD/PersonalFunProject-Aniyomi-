@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.paddingFromBaseline
 import androidx.compose.foundation.layout.width
@@ -169,8 +170,8 @@ fun AnimeTrackerSearch(
             ) {
                 Row(
                     modifier = Modifier
+                        .navigationBarsPadding()
                         .padding(MaterialTheme.padding.small)
-                        .padding(bottom = 70.dp)
                         .fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(MaterialTheme.padding.small),
                 ) {

@@ -12,22 +12,17 @@ import kotlin.time.Duration
 import kotlin.time.Duration.Companion.minutes
 
 fun Duration.toDurationString(context: Context, fallback: String): String {
-    return toComponents { days, hours, minutes, seconds, _ ->
-        buildList(4) {
-            if (days != 0L) add(context.stringResource(MR.strings.day_short, days))
-            if (hours != 0) add(context.stringResource(MR.strings.hour_short, hours))
-            if (minutes != 0 && (days == 0L || hours == 0)) {
-                add(
-                    context.stringResource(MR.strings.minute_short, minutes),
-                )
-            }
-            if (seconds != 0 && days == 0L && hours == 0) {
-                add(
-                    context.stringResource(MR.strings.seconds_short, seconds),
-                )
-            }
-        }.joinToString(" ").ifBlank { fallback }
-    }
+    val totalHours = inWholeHours
+    val minutes = (inWholeMinutes % 60).toInt()
+    val seconds = (inWholeSeconds % 60).toInt()
+
+    return buildList(3) {
+        if (totalHours > 0) add(context.stringResource(MR.strings.hour_short, totalHours))
+        if (minutes > 0) add(context.stringResource(MR.strings.minute_short, minutes))
+        if (seconds > 0 && totalHours == 0L && minutes == 0) {
+            add(context.stringResource(MR.strings.seconds_short, seconds))
+        }
+    }.joinToString(" ").ifBlank { fallback }
 }
 
 @Composable
