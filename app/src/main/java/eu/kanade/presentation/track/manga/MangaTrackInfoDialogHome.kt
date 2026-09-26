@@ -85,13 +85,9 @@ fun MangaTrackInfoDialogHome(
         modifier = Modifier
             .animateContentSize()
             .fillMaxWidth()
-            .heightIn(
-                min = (screenHeight * 0.35f).coerceAtLeast(220.dp),
-                max = screenHeight * 0.85f,
-            )
+            .heightIn(max = screenHeight * 0.85f)
             .verticalScroll(rememberScrollState())
-            .padding(horizontal = 16.dp, vertical = 20.dp)
-            .navigationBarsPadding(),
+            .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(24.dp),
     ) {
         trackItems.forEach { item ->
