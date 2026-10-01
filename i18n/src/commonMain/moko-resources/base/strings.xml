@@ -413,6 +413,10 @@
     <string name="pref_always_decode_long_strip_with_ssiv_summary">Affects performance. Only enable if reducing bitmap threshold doesn\'t fix blank image issues</string>
     <string name="pref_display_profile">Custom display profile</string>
     <string name="pref_crop_borders">Crop borders</string>
+    <string name="action_auto_scroll">Auto-scroll</string>
+    <string name="pref_auto_scroll">Auto-scroll</string>
+    <string name="pref_auto_scroll_speed">Auto-scroll speed</string>
+    <string name="pref_auto_page_interval">Auto-page interval</string>
     <string name="pref_custom_brightness">Custom brightness</string>
     <string name="pref_grayscale">Grayscale</string>
     <string name="pref_inverted_colors">Inverted</string>

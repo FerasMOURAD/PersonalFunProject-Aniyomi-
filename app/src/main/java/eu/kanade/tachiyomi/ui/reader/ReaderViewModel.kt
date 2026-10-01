@@ -7,6 +7,9 @@ import androidx.compose.runtime.Immutable
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import eu.kanade.domain.base.BasePreferences
 import eu.kanade.domain.entries.manga.interactor.SetMangaViewerFlags
 import eu.kanade.domain.entries.manga.model.readerOrientation
@@ -962,6 +965,28 @@ class ReaderViewModel @JvmOverloads constructor(
         }
     }
 
+    private var autoScrollHudJob: Job? = null
+
+    fun setAutoScrolling(active: Boolean, hudText: String? = null) {
+        mutableState.update { it.copy(isAutoScrolling = active, autoScrollHudText = hudText) }
+        autoScrollHudJob?.cancel()
+        if (hudText != null) {
+            autoScrollHudJob = viewModelScope.launch {
+                delay(1500)
+                mutableState.update { it.copy(autoScrollHudText = null) }
+            }
+        }
+    }
+
+    fun updateAutoScrollHud(hudText: String) {
+        mutableState.update { it.copy(autoScrollHudText = hudText) }
+        autoScrollHudJob?.cancel()
+        autoScrollHudJob = viewModelScope.launch {
+            delay(1500)
+            mutableState.update { it.copy(autoScrollHudText = null) }
+        }
+    }
+
     @Immutable
     data class State(
         val manga: Manga? = null,
@@ -977,6 +1002,8 @@ class ReaderViewModel @JvmOverloads constructor(
         val dialog: Dialog? = null,
         val menuVisible: Boolean = false,
         @IntRange(from = -100, to = 100) val brightnessOverlayValue: Int = 0,
+        val isAutoScrolling: Boolean = false,
+        val autoScrollHudText: String? = null,
     ) {
         val currentChapter: ReaderChapter?
             get() = viewerChapters?.currChapter

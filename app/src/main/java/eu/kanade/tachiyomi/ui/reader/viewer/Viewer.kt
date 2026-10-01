@@ -42,4 +42,14 @@ interface Viewer {
      * return true if the event was handled, false otherwise.
      */
     fun handleGenericMotionEvent(event: MotionEvent): Boolean
+
+    fun startAutoScroll() {}
+
+    fun stopAutoScroll() {}
+
+    fun isAutoScrolling(): Boolean = false
+
+    fun adjustAutoScrollSpeed(isFaster: Boolean): String? = null
+
+    fun getAutoScrollStatus(): String? = null
 }

@@ -21,6 +21,12 @@ import android.view.WindowManager
 import android.widget.Toast
 import androidx.activity.viewModels
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.foundation.layout.Row
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
@@ -29,6 +35,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.core.content.getSystemService
 import androidx.core.graphics.ColorUtils
@@ -249,6 +256,7 @@ class ReaderActivity : BaseActivity() {
      */
     override fun onDestroy() {
         super.onDestroy()
+        stopAutoScroll()
         viewModel.state.value.viewer?.destroy()
         config = null
         menuToggleToast?.cancel()
@@ -319,7 +327,36 @@ class ReaderActivity : BaseActivity() {
     /**
      * Dispatches a key event. If the viewer doesn't handle it, call the default implementation.
      */
+    override fun dispatchTouchEvent(ev: MotionEvent): Boolean {
+        if (viewModel.state.value.isAutoScrolling) {
+            if (ev.action == MotionEvent.ACTION_DOWN) {
+                stopAutoScroll()
+                return true
+            }
+            return true
+        }
+        return super.dispatchTouchEvent(ev)
+    }
+
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+        if (viewModel.state.value.isAutoScrolling) {
+            if (event.action == KeyEvent.ACTION_DOWN) {
+                when (event.keyCode) {
+                    KeyEvent.KEYCODE_VOLUME_UP -> {
+                        adjustAutoScrollSpeed(isFaster = true)
+                        return true
+                    }
+                    KeyEvent.KEYCODE_VOLUME_DOWN -> {
+                        adjustAutoScrollSpeed(isFaster = false)
+                        return true
+                    }
+                }
+            } else if (event.action == KeyEvent.ACTION_UP) {
+                if (event.keyCode == KeyEvent.KEYCODE_VOLUME_UP || event.keyCode == KeyEvent.KEYCODE_VOLUME_DOWN) {
+                    return true
+                }
+            }
+        }
         val handled = viewModel.state.value.viewer?.handleKeyEvent(event) ?: false
         return handled || super.dispatchKeyEvent(event)
     }
@@ -380,6 +417,7 @@ class ReaderActivity : BaseActivity() {
             val isPagerType = ReadingMode.isPagerType(viewModel.getMangaReadingMode())
             val cropEnabled = if (isPagerType) cropBorderPaged else cropBorderWebtoon
 
+            Box(modifier = Modifier.fillMaxSize()) {
             ReaderContentOverlay(
                 brightness = state.brightnessOverlayValue,
                 color = colorOverlay.takeIf { colorOverlayEnabled },
@@ -428,12 +466,49 @@ class ReaderActivity : BaseActivity() {
                     menuToggleToast = toast(if (enabled) MR.strings.on else MR.strings.off)
                 },
                 onClickSettings = viewModel::openSettingsDialog,
+                isAutoScrolling = state.isAutoScrolling,
+                onClickAutoScroll = ::toggleAutoScroll,
             )
+
+            androidx.compose.animation.AnimatedVisibility(
+                visible = state.autoScrollHudText != null,
+                enter = androidx.compose.animation.fadeIn() + androidx.compose.animation.slideInVertically { -it },
+                exit = androidx.compose.animation.fadeOut() + androidx.compose.animation.slideOutVertically { -it },
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .statusBarsPadding()
+                    .padding(top = 16.dp),
+            ) {
+                androidx.compose.material3.Surface(
+                    shape = androidx.compose.foundation.shape.RoundedCornerShape(24.dp),
+                    color = MaterialTheme.colorScheme.inverseSurface.copy(alpha = 0.85f),
+                    contentColor = MaterialTheme.colorScheme.inverseOnSurface,
+                    shadowElevation = 6.dp,
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        androidx.compose.material3.Icon(
+                            painter = androidx.compose.ui.res.painterResource(R.drawable.ic_play_arrow_24dp),
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp),
+                            tint = MaterialTheme.colorScheme.primary,
+                        )
+                        Text(
+                            text = state.autoScrollHudText.orEmpty(),
+                            style = MaterialTheme.typography.labelLarge,
+                        )
+                    }
+                }
+            }
 
             if (flashOnPageChange) {
                 DisplayRefreshHost(
                     hostState = displayRefreshHost,
                 )
+            }
             }
 
             val onDismissRequest = viewModel::closeDialog
@@ -707,6 +782,40 @@ class ReaderActivity : BaseActivity() {
      * Called from the viewer to toggle the visibility of the menu. It's implemented on the
      * viewer because each one implements its own touch and key events.
      */
+    fun startAutoScroll() {
+        val viewer = viewModel.state.value.viewer ?: return
+        hideMenu()
+        viewer.startAutoScroll()
+        val status = viewer.getAutoScrollStatus() ?: "Auto-scroll"
+        viewModel.setAutoScrolling(true, status)
+        window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+    }
+
+    fun stopAutoScroll() {
+        val viewer = viewModel.state.value.viewer
+        viewer?.stopAutoScroll()
+        viewModel.setAutoScrolling(false, null)
+        if (!readerPreferences.keepScreenOn().get()) {
+            window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        }
+    }
+
+    fun toggleAutoScroll() {
+        if (viewModel.state.value.isAutoScrolling) {
+            stopAutoScroll()
+        } else {
+            startAutoScroll()
+        }
+    }
+
+    fun adjustAutoScrollSpeed(isFaster: Boolean) {
+        val viewer = viewModel.state.value.viewer ?: return
+        val newSpeed = viewer.adjustAutoScrollSpeed(isFaster)
+        if (newSpeed != null) {
+            viewModel.updateAutoScrollHud(newSpeed)
+        }
+    }
+
     fun toggleMenu() {
         setMenuVisibility(!viewModel.state.value.menuVisible)
     }

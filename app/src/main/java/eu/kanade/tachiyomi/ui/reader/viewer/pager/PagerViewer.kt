@@ -17,7 +17,14 @@ import eu.kanade.tachiyomi.ui.reader.model.ChapterTransition
 import eu.kanade.tachiyomi.ui.reader.model.InsertPage
 import eu.kanade.tachiyomi.ui.reader.model.ReaderPage
 import eu.kanade.tachiyomi.ui.reader.model.ViewerChapters
+import eu.kanade.tachiyomi.source.model.Page
 import eu.kanade.tachiyomi.ui.reader.viewer.Viewer
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
+import kotlin.math.roundToInt
 import eu.kanade.tachiyomi.ui.reader.viewer.ViewerNavigation.NavigationRegion
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.cancel
@@ -147,6 +154,7 @@ abstract class PagerViewer(val activity: ReaderActivity) : Viewer {
 
     override fun destroy() {
         super.destroy()
+        stopAutoScroll()
         scope.cancel()
     }
 
@@ -446,5 +454,60 @@ abstract class PagerViewer(val activity: ReaderActivity) : Viewer {
 
     private fun cleanupPageSplit() {
         adapter.cleanupPageSplit()
+    }
+
+    private var autoScrollJob: Job? = null
+
+    override fun startAutoScroll() {
+        stopAutoScroll()
+        autoScrollJob = scope.launch(Dispatchers.Main) {
+            while (isActive) {
+                val intervalSec = activity.viewModel.readerPreferences.pagerAutoScrollInterval().get()
+                delay((intervalSec * 1000).toLong())
+                if (!isActive) break
+
+                val curr = currentPage as? ReaderPage
+                if (curr != null && (curr.status == Page.State.LOAD_PAGE || curr.status == Page.State.DOWNLOAD_IMAGE)) {
+                    continue
+                }
+
+                if (pager.currentItem == adapter.count - 1) {
+                    val lastItem = adapter.items.getOrNull(adapter.count - 1)
+                    if (lastItem is ChapterTransition.Next && lastItem.to == null) {
+                        activity.runOnUiThread { activity.stopAutoScroll() }
+                        break
+                    }
+                }
+
+                moveToNext()
+            }
+        }
+    }
+
+    override fun stopAutoScroll() {
+        autoScrollJob?.cancel()
+        autoScrollJob = null
+    }
+
+    override fun isAutoScrolling(): Boolean = autoScrollJob?.isActive == true
+
+    override fun adjustAutoScrollSpeed(isFaster: Boolean): String {
+        val pref = activity.viewModel.readerPreferences.pagerAutoScrollInterval()
+        val current = pref.get()
+        val step = 0.5f
+        val newInterval = if (isFaster) {
+            (current - step).coerceAtLeast(1.0f)
+        } else {
+            (current + step).coerceAtMost(20.0f)
+        }
+        pref.set(newInterval)
+        val formatted = (newInterval * 10).roundToInt() / 10.0
+        return "Auto-page: ${formatted}s"
+    }
+
+    override fun getAutoScrollStatus(): String {
+        val current = activity.viewModel.readerPreferences.pagerAutoScrollInterval().get()
+        val formatted = (current * 10).roundToInt() / 10.0
+        return "Auto-page: ${formatted}s"
     }
 }

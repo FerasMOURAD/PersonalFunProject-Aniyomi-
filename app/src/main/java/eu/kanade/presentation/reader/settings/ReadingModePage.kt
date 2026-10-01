@@ -23,6 +23,7 @@ import tachiyomi.presentation.core.components.SliderItem
 import tachiyomi.presentation.core.i18n.stringResource
 import tachiyomi.presentation.core.util.collectAsState
 import java.text.NumberFormat
+import kotlin.math.roundToInt
 
 @Composable
 internal fun ColumnScope.ReadingModePage(screenModel: ReaderSettingsScreenModel) {
@@ -78,6 +79,18 @@ private fun ColumnScope.PagerViewerSettings(screenModel: ReaderSettingsScreenMod
         onSelect = screenModel.preferences.navigationModePager()::set,
         invertMode = pagerNavInverted,
         onSelectInvertMode = screenModel.preferences.pagerNavInverted()::set,
+    )
+
+    val pagerAutoScrollInterval by screenModel.preferences.pagerAutoScrollInterval().collectAsState()
+    SliderItem(
+        value = (pagerAutoScrollInterval * 2).roundToInt(),
+        valueRange = 2..40,
+        label = stringResource(MR.strings.pref_auto_page_interval),
+        valueText = "${((pagerAutoScrollInterval * 10).roundToInt() / 10.0)}s",
+        onChange = {
+            screenModel.preferences.pagerAutoScrollInterval().set(it / 2f)
+        },
+        pillColor = MaterialTheme.colorScheme.surfaceContainerHighest,
     )
 
     val imageScaleType by screenModel.preferences.imageScaleType().collectAsState()
@@ -157,6 +170,18 @@ private fun ColumnScope.WebtoonViewerSettings(screenModel: ReaderSettingsScreenM
         onSelect = screenModel.preferences.navigationModeWebtoon()::set,
         invertMode = webtoonNavInverted,
         onSelectInvertMode = screenModel.preferences.webtoonNavInverted()::set,
+    )
+
+    val webtoonAutoScrollSpeed by screenModel.preferences.webtoonAutoScrollSpeed().collectAsState()
+    SliderItem(
+        value = webtoonAutoScrollSpeed.roundToInt(),
+        valueRange = 15..300,
+        label = stringResource(MR.strings.pref_auto_scroll_speed),
+        valueText = "${((webtoonAutoScrollSpeed / 60f * 10).roundToInt() / 10.0)}x (${webtoonAutoScrollSpeed.roundToInt()} dp/s)",
+        onChange = {
+            screenModel.preferences.webtoonAutoScrollSpeed().set(it.toFloat())
+        },
+        pillColor = MaterialTheme.colorScheme.surfaceContainerHighest,
     )
 
     val webtoonSidePadding by screenModel.preferences.webtoonSidePadding().collectAsState()

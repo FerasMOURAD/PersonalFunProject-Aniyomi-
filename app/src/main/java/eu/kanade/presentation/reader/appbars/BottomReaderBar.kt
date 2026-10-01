@@ -34,6 +34,8 @@ fun BottomReaderBar(
     cropEnabled: Boolean,
     onClickCropBorder: () -> Unit,
     onClickSettings: () -> Unit,
+    isAutoScrolling: Boolean = false,
+    onClickAutoScroll: () -> Unit = {},
 ) {
     val configuration = LocalConfiguration.current
     val screenHeight = configuration.screenHeightDp.dp
@@ -76,6 +78,17 @@ fun BottomReaderBar(
             Icon(
                 painter = painterResource(if (cropEnabled) R.drawable.ic_crop_24dp else R.drawable.ic_crop_off_24dp),
                 contentDescription = stringResource(MR.strings.pref_crop_borders),
+            )
+        }
+
+        IconButton(
+            modifier = Modifier.size(buttonSize),
+            onClick = onClickAutoScroll,
+        ) {
+            Icon(
+                painter = painterResource(if (isAutoScrolling) R.drawable.ic_pause_24dp else R.drawable.ic_play_arrow_24dp),
+                contentDescription = stringResource(MR.strings.pref_auto_scroll),
+                tint = if (isAutoScrolling) androidx.compose.material3.MaterialTheme.colorScheme.primary else androidx.compose.material3.LocalContentColor.current,
             )
         }
 

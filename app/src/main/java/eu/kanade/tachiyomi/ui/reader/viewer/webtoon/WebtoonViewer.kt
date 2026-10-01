@@ -17,7 +17,10 @@ import eu.kanade.tachiyomi.ui.reader.model.ChapterTransition
 import eu.kanade.tachiyomi.ui.reader.model.ReaderPage
 import eu.kanade.tachiyomi.ui.reader.model.ViewerChapters
 import eu.kanade.tachiyomi.ui.reader.setting.ReaderPreferences
+import android.view.Choreographer
+import eu.kanade.tachiyomi.source.model.Page
 import eu.kanade.tachiyomi.ui.reader.viewer.Viewer
+import kotlin.math.roundToInt
 import eu.kanade.tachiyomi.ui.reader.viewer.ViewerNavigation.NavigationRegion
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.cancel
@@ -198,6 +201,7 @@ class WebtoonViewer(val activity: ReaderActivity, val isContinuous: Boolean = tr
      */
     override fun destroy() {
         super.destroy()
+        stopAutoScroll()
         scope.cancel()
     }
 
@@ -358,6 +362,94 @@ class WebtoonViewer(val activity: ReaderActivity, val isContinuous: Boolean = tr
             max(0, position - 3),
             min(position + 3, adapter.itemCount - 1),
         )
+    }
+
+    private var isAutoScrollRunning: Boolean = false
+    private var accumulatedScroll: Float = 0f
+
+    private val autoScrollFrameCallback = object : Choreographer.FrameCallback {
+        private var lastTimeNanos: Long = 0L
+
+        override fun doFrame(frameTimeNanos: Long) {
+            if (!isAutoScrollRunning) return
+            if (lastTimeNanos != 0L) {
+                val dtSec = (frameTimeNanos - lastTimeNanos).coerceAtLeast(0L) / 1_000_000_000.0f
+                stepAutoScroll(dtSec)
+            }
+            lastTimeNanos = frameTimeNanos
+            if (isAutoScrollRunning) {
+                Choreographer.getInstance().postFrameCallback(this)
+            }
+        }
+
+        fun reset() {
+            lastTimeNanos = 0L
+        }
+    }
+
+    private fun stepAutoScroll(dtSec: Float) {
+        val currentSpeedDp = activity.viewModel.readerPreferences.webtoonAutoScrollSpeed().get()
+        if (currentSpeedDp <= 0f) return
+
+        val lastPos = layoutManager.findLastVisibleItemPosition()
+        val lastItem = adapter.items.getOrNull(lastPos)
+        val isPageLoading = (lastItem as? ReaderPage)?.status?.let {
+            it == Page.State.LOAD_PAGE || it == Page.State.DOWNLOAD_IMAGE
+        } ?: false
+
+        if (!isPageLoading && recycler.canScrollVertically(1)) {
+            val density = activity.resources.displayMetrics.density
+            val pxPerSec = currentSpeedDp * density
+            val delta = pxPerSec * dtSec
+            accumulatedScroll += delta
+            val intDelta = accumulatedScroll.toInt()
+            if (intDelta > 0) {
+                recycler.scrollBy(0, intDelta)
+                accumulatedScroll -= intDelta
+            }
+        } else if (!recycler.canScrollVertically(1)) {
+            val lastAdapterItem = adapter.items.lastOrNull()
+            if (lastAdapterItem is ChapterTransition.Next && lastAdapterItem.to == null) {
+                activity.runOnUiThread { activity.stopAutoScroll() }
+            }
+        }
+    }
+
+    override fun startAutoScroll() {
+        if (isAutoScrollRunning) return
+        isAutoScrollRunning = true
+        accumulatedScroll = 0f
+        autoScrollFrameCallback.reset()
+        Choreographer.getInstance().postFrameCallback(autoScrollFrameCallback)
+    }
+
+    override fun stopAutoScroll() {
+        if (!isAutoScrollRunning) return
+        isAutoScrollRunning = false
+        Choreographer.getInstance().removeFrameCallback(autoScrollFrameCallback)
+        accumulatedScroll = 0f
+    }
+
+    override fun isAutoScrolling(): Boolean = isAutoScrollRunning
+
+    override fun adjustAutoScrollSpeed(isFaster: Boolean): String {
+        val pref = activity.viewModel.readerPreferences.webtoonAutoScrollSpeed()
+        val current = pref.get()
+        val step = 15f
+        val newSpeed = if (isFaster) {
+            (current + step).coerceAtMost(300f)
+        } else {
+            (current - step).coerceAtLeast(15f)
+        }
+        pref.set(newSpeed)
+        val multiplier = (newSpeed / 60f * 10).roundToInt() / 10.0
+        return "Auto-scroll: ${multiplier}x (${newSpeed.toInt()} dp/s)"
+    }
+
+    override fun getAutoScrollStatus(): String {
+        val current = activity.viewModel.readerPreferences.webtoonAutoScrollSpeed().get()
+        val multiplier = (current / 60f * 10).roundToInt() / 10.0
+        return "Auto-scroll: ${multiplier}x (${current.toInt()} dp/s)"
     }
 }
 

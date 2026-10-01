@@ -35,6 +35,10 @@ class ReaderPreferences(
 
     fun keepScreenOn() = preferenceStore.getBoolean("pref_keep_screen_on_key", true)
 
+    fun webtoonAutoScrollSpeed() = preferenceStore.getFloat("pref_webtoon_auto_scroll_speed", 60f)
+
+    fun pagerAutoScrollInterval() = preferenceStore.getFloat("pref_pager_auto_scroll_interval", 5.0f)
+
     fun defaultReadingMode() = preferenceStore.getInt(
         "pref_default_reading_mode_key",
         ReadingMode.RIGHT_TO_LEFT.flagValue,
